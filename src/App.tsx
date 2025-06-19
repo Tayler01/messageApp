@@ -6,8 +6,10 @@ import { MessageInput } from './components/MessageInput';
 import { UserProfile } from './components/UserProfile';
 import { ProfilePreviewModal } from './components/ProfilePreviewModal';
 import { DMsPage } from './components/DMsPage';
+import { NotificationBanner } from './components/NotificationBanner';
 import { useMessages } from './hooks/useMessages';
 import { useAuth } from './hooks/useAuth';
+import { useDMNotifications } from './hooks/useDMNotifications';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { supabase } from './lib/supabase';
 
@@ -17,6 +19,7 @@ function App() {
   const { user, loading: authLoading, signOut, updateUser } = useAuth();
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('group-chat');
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   // Only call useMessages if user is authenticated
   const {
@@ -27,6 +30,13 @@ function App() {
     fetchOlderMessages,
     hasMore,
   } = useMessages(user?.id ?? null);
+
+  const {
+    unreadConversations,
+    banner,
+    clearBanner,
+    markAsRead,
+  } = useDMNotifications(user?.id ?? null, currentPage, activeConversationId);
 
   // Show loading spinner while checking auth
   if (authLoading) {
@@ -79,14 +89,25 @@ function App() {
   if (currentPage === 'dms') {
     return (
       <div className="flex flex-col h-screen bg-gray-900">
-        <ChatHeader 
+        <ChatHeader
           userName={user.username}
           onClearUser={signOut}
           onShowProfile={() => setCurrentPage('profile')}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
+          hasUnreadDMs={unreadConversations.length > 0}
         />
-        <DMsPage currentUser={user} onUserClick={handleUserClick} />
+        <DMsPage
+          currentUser={user}
+          onUserClick={handleUserClick}
+          unreadConversations={unreadConversations}
+          markAsRead={markAsRead}
+          onConversationOpen={setActiveConversationId}
+        />
+        <NotificationBanner
+          message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
+          onClose={clearBanner}
+        />
         {previewUserId && (
           <ProfilePreviewModal
             userId={previewUserId}
@@ -99,12 +120,13 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900">
-      <ChatHeader 
+      <ChatHeader
         userName={user.username}
         onClearUser={signOut}
         onShowProfile={() => setCurrentPage('profile')}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
+        hasUnreadDMs={unreadConversations.length > 0}
       />
 
       <ChatArea
@@ -118,9 +140,14 @@ function App() {
         onUserClick={handleUserClick}
       />
 
-      <MessageInput 
+      <MessageInput
         onSendMessage={handleSendMessage}
         disabled={loading}
+      />
+
+      <NotificationBanner
+        message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
+        onClose={clearBanner}
       />
 
       {previewUserId && (
