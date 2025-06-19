@@ -35,9 +35,12 @@ interface DMsPageProps {
     avatar_url?: string;
   };
   onUserClick?: (userId: string) => void;
+  unreadConversations?: string[];
+  markAsRead?: (conversationId: string, timestamp: string) => void;
+  onConversationOpen?: (id: string | null) => void;
 }
 
-export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], markAsRead, onConversationOpen }: DMsPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
@@ -48,6 +51,19 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  useEffect(() => {
+    if (onConversationOpen) {
+      onConversationOpen(selectedConversation ? selectedConversation.id : null);
+    }
+
+    if (selectedConversation && markAsRead) {
+      const last = selectedConversation.messages[selectedConversation.messages.length - 1];
+      if (last) {
+        markAsRead(selectedConversation.id, last.created_at);
+      }
+    }
+  }, [selectedConversation, onConversationOpen, markAsRead]);
 
   useEffect(() => {
     fetchCurrentUserData();
@@ -327,7 +343,7 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                             onClick={() => {
                               setSelectedConversation(conversation);
                             }}
-                            className={`w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${
+                            className={`relative w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${
                               selectedConversation?.id === conversation.id ? 'bg-gray-700/60 border-emerald-500/30' : ''
                             }`}
                           >
@@ -358,6 +374,9 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                                   </p>
                                 )}
                               </div>
+                              {unreadConversations.includes(conversation.id) && (
+                                <span className="ml-auto w-2 h-2 bg-red-500 rounded-full" />
+                              )}
                             </div>
                           </button>
                         );
@@ -380,22 +399,27 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                     ).length > 0 ? (
                       users.filter(user =>
                         user.username.toLowerCase().includes(searchQuery.toLowerCase())
-                      ).map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => {
-                            startConversation(user);
-                          }}
-                          className="w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
+                      ).map(user => {
+                        const existing = conversations.find(c =>
+                          (c.user1_id === currentUser.id ? c.user2_id : c.user1_id) === user.id
+                        );
+                        const hasUnread = existing ? unreadConversations.includes(existing.id) : false;
+                        return (
+                          <button
+                            key={user.id}
+                            onClick={() => {
+                              startConversation(user);
+                            }}
+                            className="relative w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
                               {user.avatar_url ? (
-                                <img
-                                  src={user.avatar_url}
-                                  alt={user.username}
-                                  className="w-full h-full object-cover"
-                                />
+                                  <img
+                                    src={user.avatar_url}
+                                    alt={user.username}
+                                    className="w-full h-full object-cover"
+                                  />
                               ) : (
                                 <div 
                                   className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
@@ -405,12 +429,16 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                                 </div>
                               )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium truncate">{user.username}</p>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-medium truncate">{user.username}</p>
+                              </div>
+                              {hasUnread && (
+                                <span className="ml-auto w-2 h-2 bg-red-500 rounded-full" />
+                              )}
                             </div>
-                          </div>
-                        </button>
-                      ))
+                          </button>
+                        );
+                      })
                     ) : (
                       <div className="text-center py-8">
                         <Users className="w-8 h-8 text-gray-500 mx-auto mb-2" />

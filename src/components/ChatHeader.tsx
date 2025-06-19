@@ -9,9 +9,10 @@ interface ChatHeaderProps {
   onShowProfile: () => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
+  hasUnreadDMs?: boolean;
 }
 
-export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange }: ChatHeaderProps) {
+export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange, hasUnreadDMs }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
 
@@ -54,7 +55,7 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
             
             <button
               onClick={() => onPageChange('dms')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+              className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                 currentPage === 'dms'
                   ? 'bg-gray-600 text-white shadow-lg'
                   : 'text-gray-300 hover:text-white hover:bg-gray-700'
@@ -63,6 +64,9 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
             >
               <MessageCircle className="w-5 h-5" />
               <span className="text-sm font-medium">DMs</span>
+              {hasUnreadDMs && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
             </button>
           </div>
           
@@ -146,7 +150,7 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
                 onPageChange('dms');
                 setShowMobileNav(false);
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 currentPage === 'dms'
                   ? 'bg-gray-600 text-white shadow-lg'
                   : 'text-gray-300 hover:text-white hover:bg-gray-700'
@@ -154,6 +158,9 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
             >
               <MessageCircle className="w-5 h-5" />
               <span className="font-medium">Direct Messages</span>
+              {hasUnreadDMs && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
             </button>
             
             <button
