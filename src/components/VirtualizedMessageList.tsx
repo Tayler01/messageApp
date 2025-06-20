@@ -14,15 +14,17 @@ interface VirtualizedMessageListProps {
   items: Item[];
   height: number;
   className?: string;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  outerRef?: React.Ref<HTMLDivElement>;
 }
 
 export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, VirtualizedMessageListProps>(
-  ({ items, height, className }, ref) => {
+  ({ items, height, className, onScroll, outerRef }, ref) => {
     const listRef = useRef<List>(null);
     const sizeMap = useRef<Map<number, number>>(new Map());
 
     const getSize = (index: number) => {
-      return sizeMap.current.get(index) ?? 60;
+      return sizeMap.current.get(index) ?? 80;
     };
 
     const setSize = (index: number, size: number) => {
@@ -36,22 +38,12 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
       const rowRef = useRef<HTMLDivElement>(null);
 
       useLayoutEffect(() => {
-        if (rowRef.current) {
-          // Use a small delay to ensure the element is fully rendered
-          const timer = setTimeout(() => {
-            if (rowRef.current) {
-              const height = rowRef.current.getBoundingClientRect().height;
-              if (height > 0) {
-                setSize(index, height);
-              }
-            }
-          }, 0);
-          return () => clearTimeout(timer);
-        }
+        const height = rowRef.current?.getBoundingClientRect().height ?? 80;
+        setSize(index, height);
       }, [index]);
 
       return (
-        <div style={style} ref={rowRef} className="px-2 sm:px-4 flex-shrink-0">
+        <div style={style} ref={rowRef}>
           {items[index].element}
         </div>
       );
@@ -59,7 +51,7 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
 
     useImperativeHandle(ref, () => ({
       scrollToItem: (index: number) => {
-        listRef.current?.scrollToItem(index, 'end');
+        listRef.current?.scrollToItem(index);
       },
     }));
 
@@ -70,8 +62,9 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
         itemSize={getSize}
         width="100%"
         ref={listRef}
+        outerRef={outerRef}
         className={className}
-        overscanCount={5}
+        onScroll={onScroll}
       >
         {Row}
       </List>

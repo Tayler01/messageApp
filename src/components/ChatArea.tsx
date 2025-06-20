@@ -112,7 +112,7 @@ export function ChatArea({
         arr.push({
           key: `date-${dateLabel}-${message.id}`,
           element: (
-            <div className="py-2">
+            <div className="my-4">
               <DateDivider label={dateLabel} />
             </div>
           ),
@@ -155,20 +155,14 @@ export function ChatArea({
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-hidden bg-gray-900">
-      {listHeight > 0 ? (
-        <VirtualizedMessageList
-          ref={listRef}
-          items={items}
-          height={listHeight}
-          className="w-full h-full"
-        />
-      ) : (
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        </div>
-      )}
-    </div>
+    <VirtualizedMessageList
+      ref={listRef}
+      items={items}
+      height={listHeight}
+      outerRef={containerRef}
+      className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
+      onScroll={handleScroll}
+    />
   );
 }
 
