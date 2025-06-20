@@ -324,7 +324,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
 
             <div
               className={`flex flex-col max-w-[75%] sm:max-w-[65%] ${
-                message.sender_id === currentUser.id
+                message.sender_id === currentUser.id ? 'items-end' : 'items-start'
               }`}
             >
               <div
