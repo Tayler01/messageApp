@@ -38,12 +38,16 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
       const rowRef = useRef<HTMLDivElement>(null);
 
       useLayoutEffect(() => {
-        const height = rowRef.current?.getBoundingClientRect().height ?? 80;
-        setSize(index, height);
+        if (rowRef.current) {
+          const height = rowRef.current.getBoundingClientRect().height;
+          if (height > 0) {
+            setSize(index, height);
+          }
+        }
       }, [index]);
 
       return (
-        <div style={style} ref={rowRef}>
+        <div style={style} ref={rowRef} className="px-2 sm:px-4">
           {items[index].element}
         </div>
       );
@@ -63,7 +67,7 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
         width="100%"
         ref={listRef}
         outerRef={outerRef}
-        className={className}
+        className={`${className} overflow-y-auto overflow-x-hidden`}
         onScroll={onScroll}
       >
         {Row}
