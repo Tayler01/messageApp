@@ -41,13 +41,41 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   const messageContainerRef = useRef<HTMLDivElement>(null);
   // Effect to handle external conversation selection (from banner clicks)
   useEffect(() => {
-    if (activeConversationId && conversations.length > 0) {
+    if (activeConversationId) {
       const conversation = conversations.find(conv => conv.id === activeConversationId);
       if (conversation) {
         setSelectedConversation(conversation);
+      } else if (conversations.length === 0) {
+        // If conversations haven't loaded yet, wait for them
+        return;
+      } else {
+        // If conversation not found in current list, fetch it
+        const fetchConversation = async () => {
+          try {
+            const { data, error } = await supabase
+              .from('dms')
+              .select('*')
+              .eq('id', activeConversationId)
+              .single();
+
+            if (error) throw error;
+            if (data) {
+              setSelectedConversation(data);
+              // Add to conversations list if not already there
+              setConversations(prev => {
+                const exists = prev.find(conv => conv.id === data.id);
+                if (exists) return prev;
+                return [data, ...prev];
+              });
+            }
+          } catch (err) {
+            console.error('Error fetching conversation:', err);
+          }
+        };
+        fetchConversation();
       }
     }
-  }, [activeConversationId, conversations]);
+  }, [activeConversationId, conversations, currentUser.id]);
 
 
   useLayoutEffect(() => {
