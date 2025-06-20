@@ -131,7 +131,7 @@ export function ChatArea({
       });
     }
 
-    messages.forEach((message, index) => {
+    messages.forEach((message) => {
       const dateLabel = formatDateGroup(message.created_at);
 
       if (dateLabel !== lastDateLabel) {

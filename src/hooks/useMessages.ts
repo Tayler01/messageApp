@@ -187,13 +187,15 @@ export function useMessages() {
 
       console.log('Message sent successfully:', data);
 
-      // The realtime subscription will handle adding the message to the state
-      // But we'll also update the latest timestamp
-      if (data && (
-        !latestTimestampRef.current ||
-        new Date(data.created_at) > new Date(latestTimestampRef.current)
-      )) {
-        latestTimestampRef.current = data.created_at;
+      if (data) {
+        // Optimistically add the message to local state in case realtime
+        // updates are not received due to configuration issues
+        setMessages(prev => [...prev, data]);
+
+        if (!latestTimestampRef.current ||
+            new Date(data.created_at) > new Date(latestTimestampRef.current)) {
+          latestTimestampRef.current = data.created_at;
+        }
       }
     } catch (err) {
       console.error('Error sending message:', err);
