@@ -12,7 +12,6 @@ import { ErrorMessage } from './ErrorMessage';
 import { DateDivider } from './DateDivider';
 import { formatDateGroup } from '../utils/formatDateGroup';
 import { Message } from '../types/message';
-import { supabase } from '../lib/supabase';
 import {
   VirtualizedMessageList,
   VirtualizedMessageListHandle,
@@ -51,6 +50,7 @@ export function ChatArea({
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
   const prevHeightRef = useRef(0);
+  const prevMessagesLengthRef = useRef(0);
   const [listHeight, setListHeight] = useState(0);
 
   useLayoutEffect(() => {
@@ -63,6 +63,7 @@ export function ChatArea({
     return () => observer.disconnect();
   }, []);
 
+  // Auto-scroll to bottom for new messages
   useEffect(() => {
     const container = containerRef.current;
     if (!container || messages.length === 0) return;
@@ -70,25 +71,34 @@ export function ChatArea({
     const isNearBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < 200;
 
-    if (!hasAutoScrolled.current) {
-      listRef.current?.scrollToItem(messages.length - 1);
-      hasAutoScrolled.current = true;
-    } else if (isNearBottom) {
-      listRef.current?.scrollToItem(messages.length - 1);
+    // Auto-scroll on initial load or when near bottom
+    if (!hasAutoScrolled.current || isNearBottom) {
+      setTimeout(() => {
+        listRef.current?.scrollToItem(messages.length - 1);
+        if (!hasAutoScrolled.current) {
+          hasAutoScrolled.current = true;
+        }
+      }, 100);
     }
-  }, [messages]);
 
-  const handleScroll = useCallback(() => {
-    const container = containerRef.current;
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length]);
+
+  // Handle scroll to load older messages
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const container = event.currentTarget;
     if (!container || !hasMore || isFetchingRef.current) return;
 
-    if (container.scrollTop === 0) {
+    // Check if scrolled to top
+    if (container.scrollTop <= 100) {
+      console.log('Scrolled to top, fetching older messages...');
       prevHeightRef.current = container.scrollHeight;
       isFetchingRef.current = true;
       fetchOlderMessages();
     }
   }, [fetchOlderMessages, hasMore]);
 
+  // Maintain scroll position after loading older messages
   useLayoutEffect(() => {
     if (!isFetchingRef.current) return;
     const container = containerRef.current;
@@ -96,26 +106,32 @@ export function ChatArea({
 
     requestAnimationFrame(() => {
       const newHeight = container.scrollHeight;
-      container.scrollTop = newHeight - prevHeightRef.current;
+      const heightDiff = newHeight - prevHeightRef.current;
+      if (heightDiff > 0) {
+        container.scrollTop = heightDiff;
+      }
       isFetchingRef.current = false;
     });
-  }, [messages]);
+  }, [messages.length]);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('scroll', handleScroll);
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll]);
-
+  // Prepare items for virtualized list
   const items = useMemo(() => {
     const arr: { key: string; element: JSX.Element }[] = [];
     let lastDateLabel: string | null = null;
 
-    messages.forEach((message) => {
+    // Add loading indicator at the top if fetching older messages
+    if (hasMore && messages.length > 0) {
+      arr.push({
+        key: 'loading-older',
+        element: (
+          <div className="py-4 flex justify-center">
+            <div className="text-gray-400 text-sm">Scroll up to load older messages</div>
+          </div>
+        ),
+      });
+    }
+
+    messages.forEach((message, index) => {
       const dateLabel = formatDateGroup(message.created_at);
 
       if (dateLabel !== lastDateLabel) {
@@ -145,69 +161,48 @@ export function ChatArea({
     });
 
     return arr;
-  }, [messages, currentUserId, onUserClick]);
+  }, [messages, currentUserId, onUserClick, hasMore]);
 
   if (loading && messages.length === 0) {
     console.log('Showing loading spinner');
-    return <LoadingSpinner />;
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-900">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   if (error) {
     console.log('Showing error:', error);
-    return <ErrorMessage message={error} onRetry={onRetry} />;
+    return (
+      <div className="flex-1 bg-gray-900">
+        <ErrorMessage message={error} onRetry={onRetry} />
+      </div>
+    );
   }
 
   if (messages.length === 0) {
     console.log('Showing empty state');
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center flex-1 space-y-4">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-900 space-y-4">
         <div>
           <p className="text-gray-400 text-lg mb-2">No messages yet</p>
           <p className="text-gray-500">Be the first to say hello! 👋</p>
         </div>
-        <button
-          onClick={async () => {
-            console.log('Testing message send...');
-            try {
-              const { data, error } = await supabase
-                .from('messages')
-                .insert({
-                  content: 'Test message from system',
-                  user_name: 'System',
-                  user_id: 'test-user-id',
-                  avatar_color: '#3B82F6'
-                })
-                .select()
-                .single();
-              
-              console.log('Test message result:', { data, error });
-              if (error) {
-                console.error('Failed to send test message:', error);
-              } else {
-                console.log('Test message sent successfully!');
-              }
-            } catch (err) {
-              console.error('Error sending test message:', err);
-            }
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Send Test Message
-        </button>
       </div>
     );
   }
 
   return (
-    <VirtualizedMessageList
-      ref={listRef}
-      items={items}
-      height={listHeight}
-      outerRef={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-900 relative w-full"
-      onScroll={handleScroll}
-    />
+    <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
+      <VirtualizedMessageList
+        ref={listRef}
+        items={items}
+        height={listHeight}
+        outerRef={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-900 relative w-full"
+        onScroll={handleScroll}
+      />
+    </div>
   );
 }
-
-

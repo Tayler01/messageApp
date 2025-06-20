@@ -32,6 +32,7 @@ function App() {
   const {
     messages,
     loading,
+    loadingOlder,
     error,
     sendMessage,
     fetchOlderMessages,
@@ -147,6 +148,7 @@ function App() {
           messages={messages}
           currentUserId={user.id}
           loading={loading}
+          loadingOlder={loadingOlder}
           error={error}
           onRetry={() => window.location.reload()}
           fetchOlderMessages={fetchOlderMessages}

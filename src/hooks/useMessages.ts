@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message } from '../types/message';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -14,6 +14,7 @@ export function useMessages() {
   const oldestTimestampRef = useRef<string | null>(null);
   const latestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
     console.log('useMessages: Starting to fetch messages...');
@@ -29,11 +30,15 @@ export function useMessages() {
           console.log('New message received:', payload);
           const newMessage = payload.new as Message;
 
-          setMessages((prev) =>
-            prev.some((msg) => msg.id === newMessage.id)
-              ? prev
-              : [...prev, newMessage]
-          );
+          setMessages((prev) => {
+            // Check if message already exists to prevent duplicates
+            if (prev.some((msg) => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
+
+          // Update latest timestamp
           if (
             !latestTimestampRef.current ||
             new Date(newMessage.created_at) > new Date(latestTimestampRef.current)
@@ -50,16 +55,6 @@ export function useMessages() {
       console.log('useMessages: Cleaning up...');
       channel.unsubscribe();
     };
-  }, []);
-
-  useEffect(() => {
-    // Start polling for new messages after a delay
-    const timer = setTimeout(() => {
-      const interval = setInterval(fetchNewMessages, 15000);
-      return () => clearInterval(interval);
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, []);
 
   const fetchLatestMessages = async () => {
@@ -92,6 +87,7 @@ export function useMessages() {
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
+      isInitialLoadRef.current = false;
     } catch (err) {
       console.error('Error fetching messages:', err);
       setError(err instanceof Error ? err.message : 'Failed to load messages');
@@ -101,8 +97,12 @@ export function useMessages() {
   };
 
   const fetchOlderMessages = async () => {
-    if (loadingOlder || !oldestTimestampRef.current || !hasMore) return;
+    if (loadingOlder || !oldestTimestampRef.current || !hasMore) {
+      console.log('Skipping fetchOlderMessages:', { loadingOlder, oldest: oldestTimestampRef.current, hasMore });
+      return;
+    }
 
+    console.log('Fetching older messages before:', oldestTimestampRef.current);
     setLoadingOlder(true);
 
     try {
@@ -116,15 +116,18 @@ export function useMessages() {
       if (error) throw error;
 
       const sorted = [...(data || [])].reverse();
-
-      setMessages((prev) => {
-        const existingIds = new Set(prev.map((m) => m.id));
-        const newUnique = sorted.filter((m) => !existingIds.has(m.id));
-        return [...newUnique, ...prev];
-      });
+      console.log('Fetched older messages:', sorted.length);
 
       if (sorted.length > 0) {
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newUnique = sorted.filter((m) => !existingIds.has(m.id));
+          console.log('Adding unique older messages:', newUnique.length);
+          return [...newUnique, ...prev];
+        });
+
         oldestTimestampRef.current = sorted[0].created_at;
+        console.log('Updated oldest timestamp:', oldestTimestampRef.current);
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
@@ -136,32 +139,6 @@ export function useMessages() {
     }
   };
 
-  const fetchNewMessages = async () => {
-    if (!latestTimestampRef.current) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
-        .gt('created_at', latestTimestampRef.current)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setMessages((prev) => {
-          const existingIds = new Set(prev.map((m) => m.id));
-          const newUnique = data.filter((m) => !existingIds.has(m.id));
-          return [...prev, ...newUnique];
-        });
-
-        latestTimestampRef.current = data[data.length - 1].created_at;
-      }
-    } catch (err) {
-      console.error('Failed to fetch new messages', err);
-    }
-  };
-
   const sendMessage = async (
     content: string,
     userName: string,
@@ -170,6 +147,8 @@ export function useMessages() {
     avatarUrl?: string | null
   ) => {
     try {
+      console.log('Sending message:', { content, userName, userId });
+      
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -184,16 +163,15 @@ export function useMessages() {
 
       if (error) throw error;
 
-      if (data) {
-        setMessages((prev) =>
-          prev.some((msg) => msg.id === data.id) ? prev : [...prev, data]
-        );
-        if (
-          !latestTimestampRef.current ||
-          new Date(data.created_at) > new Date(latestTimestampRef.current)
-        ) {
-          latestTimestampRef.current = data.created_at;
-        }
+      console.log('Message sent successfully:', data);
+
+      // The realtime subscription will handle adding the message to the state
+      // But we'll also update the latest timestamp
+      if (data && (
+        !latestTimestampRef.current ||
+        new Date(data.created_at) > new Date(latestTimestampRef.current)
+      )) {
+        latestTimestampRef.current = data.created_at;
       }
     } catch (err) {
       console.error('Error sending message:', err);
@@ -204,11 +182,10 @@ export function useMessages() {
   return {
     messages,
     loading,
+    loadingOlder,
     error,
     sendMessage,
     fetchOlderMessages,
     hasMore,
   };
 }
-
-
