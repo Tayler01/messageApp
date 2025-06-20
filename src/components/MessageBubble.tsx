@@ -16,7 +16,7 @@ export function MessageBubble({ message, isOwnMessage, onUserClick }: MessageBub
   };
 
   return (
-    <div className={`flex gap-2 sm:gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-2 sm:gap-3 ${isOwnMessage ? 'flex-row-reverse justify-start' : 'justify-start'} max-w-full`}>
       <button
         onClick={() => onUserClick?.(message.user_id)}
         className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer overflow-hidden relative"
@@ -50,13 +50,13 @@ export function MessageBubble({ message, isOwnMessage, onUserClick }: MessageBub
         )}
       </button>
       
-      <div className={`flex flex-col flex-1 ${isOwnMessage ? 'items-end' : 'items-start'} min-w-0`}>
-        <div className={`px-4 py-2 rounded-2xl w-full ${
+      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} min-w-0 max-w-[75%] sm:max-w-[65%]`}>
+        <div className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl max-w-full ${
           isOwnMessage
             ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md shadow-lg'
             : 'bg-gray-700 text-gray-100 rounded-bl-md shadow-lg border border-gray-600'
         }`}>
-          <p className="text-xs sm:text-sm leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
+          <p className="text-xs sm:text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">{message.content}</p>
         </div>
         
         <div className={`flex items-center gap-1 sm:gap-2 mt-1 text-xs text-gray-400 ${

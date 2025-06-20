@@ -125,7 +125,7 @@ export function ChatArea({
       arr.push({
         key: message.id,
         element: (
-          <div className="pb-3 sm:pb-4">
+          <div className="pb-3 sm:pb-4 px-2 sm:px-4">
             <MessageBubble
               message={message}
               isOwnMessage={message.user_id === currentUserId}
@@ -164,7 +164,7 @@ export function ChatArea({
       items={items}
       height={listHeight}
       outerRef={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
+      className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-900 relative"
       onScroll={handleScroll}
     />
   );
