@@ -42,14 +42,14 @@ export function ChatArea({
   const listRef = useRef<VirtualizedMessageListHandle>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
-  const [listHeight, setListHeight] = useState(400);
+  const [listHeight, setListHeight] = useState(0);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const update = () => {
       const height = container.clientHeight;
-      if (height > 0) {
+      if (height > 0 && height !== listHeight) {
         setListHeight(height);
       }
     };
@@ -57,7 +57,7 @@ export function ChatArea({
     const observer = new ResizeObserver(update);
     observer.observe(container);
     return () => observer.disconnect();
-  }, []);
+  }, [listHeight]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -117,7 +117,7 @@ export function ChatArea({
         arr.push({
           key: `date-${dateLabel}-${message.id}`,
           element: (
-            <div className="my-4">
+            <div className="py-2">
               <DateDivider label={dateLabel} />
             </div>
           ),
@@ -159,15 +159,26 @@ export function ChatArea({
     );
   }
 
+  if (listHeight === 0) {
+    return (
+      <div 
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center bg-gray-900"
+      >
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <VirtualizedMessageList
-      ref={listRef}
-      items={items}
-      height={listHeight}
-      outerRef={containerRef}
-      className="flex-1 bg-gray-900"
-      onScroll={handleScroll}
-    />
+    <div ref={containerRef} className="flex-1 bg-gray-900 overflow-hidden">
+      <VirtualizedMessageList
+        ref={listRef}
+        items={items}
+        height={listHeight}
+        className="w-full h-full"
+      />
+    </div>
   );
 }
 
