@@ -12,6 +12,7 @@ export function useMessages(userId: string | null) {
   const [hasMore, setHasMore] = useState(true);
 
   const oldestTimestampRef = useRef<string | null>(null);
+  const latestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,12 @@ export function useMessages(userId: string | null) {
               ? prev
               : [...prev, newMessage]
           );
+          if (
+            !latestTimestampRef.current ||
+            new Date(newMessage.created_at) > new Date(latestTimestampRef.current)
+          ) {
+            latestTimestampRef.current = newMessage.created_at;
+          }
         }
       )
       .subscribe();
@@ -41,6 +48,13 @@ export function useMessages(userId: string | null) {
     return () => {
       channel.unsubscribe();
     };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const interval = setInterval(fetchNewMessages, 15000);
+    return () => clearInterval(interval);
   }, [userId]);
 
   const fetchLatestMessages = async () => {
@@ -60,6 +74,7 @@ export function useMessages(userId: string | null) {
 
       if (sorted.length > 0) {
         oldestTimestampRef.current = sorted[0].created_at;
+        latestTimestampRef.current = sorted[sorted.length - 1].created_at;
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
@@ -105,6 +120,32 @@ export function useMessages(userId: string | null) {
     }
   };
 
+  const fetchNewMessages = async () => {
+    if (!latestTimestampRef.current) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
+        .gt('created_at', latestTimestampRef.current)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newUnique = data.filter((m) => !existingIds.has(m.id));
+          return [...prev, ...newUnique];
+        });
+
+        latestTimestampRef.current = data[data.length - 1].created_at;
+      }
+    } catch (err) {
+      console.error('Failed to fetch new messages', err);
+    }
+  };
+
   const sendMessage = async (
     content: string,
     userName: string,
@@ -113,15 +154,31 @@ export function useMessages(userId: string | null) {
     avatarUrl?: string | null
   ) => {
     try {
-      const { error } = await supabase.from('messages').insert({
-        content,
-        user_name: userName,
-        user_id: userId,
-        avatar_color: avatarColor,
-        avatar_url: avatarUrl,
-      });
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          content,
+          user_name: userName,
+          user_id: userId,
+          avatar_color: avatarColor,
+          avatar_url: avatarUrl,
+        })
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
+        .single();
 
       if (error) throw error;
+
+      if (data) {
+        setMessages((prev) =>
+          prev.some((msg) => msg.id === data.id) ? prev : [...prev, data]
+        );
+        if (
+          !latestTimestampRef.current ||
+          new Date(data.created_at) > new Date(latestTimestampRef.current)
+        ) {
+          latestTimestampRef.current = data.created_at;
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     }
