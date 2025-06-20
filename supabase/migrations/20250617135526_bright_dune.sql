@@ -29,6 +29,15 @@ CREATE POLICY "Authenticated users can insert their own messages"
   TO authenticated
   WITH CHECK (auth.uid()::text = user_id);
 
--- Add foreign key constraint (optional, but good practice)
--- Note: We'll keep user_id as text for now to maintain compatibility
--- but in a real app, you might want to make this a proper UUID foreign key
+-- Convert user_id column to uuid and add foreign key constraint
+ALTER TABLE messages
+  ALTER COLUMN user_id TYPE uuid USING user_id::uuid,
+  ALTER COLUMN user_id SET NOT NULL;
+
+-- Link messages.user_id to users.id
+ALTER TABLE messages
+  ADD CONSTRAINT messages_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- Index for quicker lookups by user
+CREATE INDEX IF NOT EXISTS messages_user_id_idx ON messages(user_id);
