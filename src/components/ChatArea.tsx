@@ -112,7 +112,7 @@ export function ChatArea({
         arr.push({
           key: `date-${dateLabel}-${message.id}`,
           element: (
-            <div className="my-4">
+            <div className="py-4">
               <DateDivider label={dateLabel} />
             </div>
           ),
@@ -123,11 +123,13 @@ export function ChatArea({
       arr.push({
         key: message.id,
         element: (
-          <MessageBubble
-            message={message}
-            isOwnMessage={message.user_id === currentUserId}
-            onUserClick={onUserClick}
-          />
+          <div className="pb-3 sm:pb-4">
+            <MessageBubble
+              message={message}
+              isOwnMessage={message.user_id === currentUserId}
+              onUserClick={onUserClick}
+            />
+          </div>
         ),
       });
     });
