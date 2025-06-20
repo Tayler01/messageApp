@@ -3,7 +3,6 @@ import React, {
   useRef,
   useCallback,
   useState,
-  useLayoutEffect,
   useMemo,
 } from 'react';
 import { MessageBubble } from './MessageBubble';
@@ -12,15 +11,12 @@ import { ErrorMessage } from './ErrorMessage';
 import { DateDivider } from './DateDivider';
 import { formatDateGroup } from '../utils/formatDateGroup';
 import { Message } from '../types/message';
-import {
-  VirtualizedMessageList,
-  VirtualizedMessageListHandle,
-} from './VirtualizedMessageList';
 
 interface ChatAreaProps {
   messages: Message[];
   currentUserId: string;
   loading: boolean;
+  loadingOlder: boolean;
   error: string | null;
   onRetry: () => void;
   fetchOlderMessages: () => void;
@@ -32,6 +28,7 @@ export function ChatArea({
   messages,
   currentUserId,
   loading,
+  loadingOlder,
   error,
   onRetry,
   fetchOlderMessages,
@@ -46,22 +43,11 @@ export function ChatArea({
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<VirtualizedMessageListHandle>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
   const prevHeightRef = useRef(0);
   const prevMessagesLengthRef = useRef(0);
-  const [listHeight, setListHeight] = useState(0);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const update = () => setListHeight(container.clientHeight);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   // Auto-scroll to bottom for new messages
   useEffect(() => {
@@ -72,9 +58,9 @@ export function ChatArea({
       container.scrollHeight - container.scrollTop - container.clientHeight < 200;
 
     // Auto-scroll on initial load or when near bottom
-    if (!hasAutoScrolled.current || isNearBottom) {
+    if (!hasAutoScrolled.current || (isNearBottom && shouldAutoScroll)) {
       setTimeout(() => {
-        listRef.current?.scrollToItem(messages.length - 1);
+        container.scrollTop = container.scrollHeight;
         if (!hasAutoScrolled.current) {
           hasAutoScrolled.current = true;
         }
@@ -82,15 +68,19 @@ export function ChatArea({
     }
 
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length]);
+  }, [messages.length, shouldAutoScroll]);
 
-  // Handle scroll to load older messages
+  // Handle scroll to load older messages and track scroll position
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const container = event.currentTarget;
-    if (!container || !hasMore || isFetchingRef.current) return;
+    if (!container) return;
 
-    // Check if scrolled to top
-    if (container.scrollTop <= 100) {
+    // Check if user is near bottom to enable/disable auto-scroll
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+    setShouldAutoScroll(isNearBottom);
+
+    // Check if scrolled to top to load older messages
+    if (container.scrollTop <= 100 && hasMore && !isFetchingRef.current) {
       console.log('Scrolled to top, fetching older messages...');
       prevHeightRef.current = container.scrollHeight;
       isFetchingRef.current = true;
@@ -99,7 +89,7 @@ export function ChatArea({
   }, [fetchOlderMessages, hasMore]);
 
   // Maintain scroll position after loading older messages
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!isFetchingRef.current) return;
     const container = containerRef.current;
     if (!container) return;
@@ -114,54 +104,54 @@ export function ChatArea({
     });
   }, [messages.length]);
 
-  // Prepare items for virtualized list
-  const items = useMemo(() => {
-    const arr: { key: string; element: JSX.Element }[] = [];
+  // Prepare message items with date dividers
+  const messageItems = useMemo(() => {
+    const items: JSX.Element[] = [];
     let lastDateLabel: string | null = null;
 
     // Add loading indicator at the top if fetching older messages
     if (hasMore && messages.length > 0) {
-      arr.push({
-        key: 'loading-older',
-        element: (
-          <div className="py-4 flex justify-center">
-            <div className="text-gray-400 text-sm">Scroll up to load older messages</div>
+      items.push(
+        <div key="loading-older" className="py-4 flex justify-center">
+          <div className="text-gray-400 text-sm">
+            {loadingOlder ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                Loading older messages...
+              </div>
+            ) : (
+              'Scroll up to load older messages'
+            )}
           </div>
-        ),
-      });
+        </div>
+      );
     }
 
     messages.forEach((message) => {
       const dateLabel = formatDateGroup(message.created_at);
 
       if (dateLabel !== lastDateLabel) {
-        arr.push({
-          key: `date-${dateLabel}-${message.id}`,
-          element: (
-            <div className="py-4">
-              <DateDivider label={dateLabel} />
-            </div>
-          ),
-        });
+        items.push(
+          <div key={`date-${dateLabel}-${message.id}`} className="py-4">
+            <DateDivider label={dateLabel} />
+          </div>
+        );
         lastDateLabel = dateLabel;
       }
 
-      arr.push({
-        key: message.id,
-        element: (
-          <div className="pb-3 sm:pb-4 px-2 sm:px-4">
-            <MessageBubble
-              message={message}
-              isOwnMessage={message.user_id === currentUserId}
-              onUserClick={onUserClick}
-            />
-          </div>
-        ),
-      });
+      items.push(
+        <div key={message.id} className="pb-3 sm:pb-4 px-2 sm:px-4">
+          <MessageBubble
+            message={message}
+            isOwnMessage={message.user_id === currentUserId}
+            onUserClick={onUserClick}
+          />
+        </div>
+      );
     });
 
-    return arr;
-  }, [messages, currentUserId, onUserClick, hasMore]);
+    return items;
+  }, [messages, currentUserId, onUserClick, hasMore, loadingOlder]);
 
   if (loading && messages.length === 0) {
     console.log('Showing loading spinner');
@@ -264,14 +254,15 @@ export function ChatArea({
 
   return (
     <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
-      <VirtualizedMessageList
-        ref={listRef}
-        items={items}
-        height={listHeight}
-        outerRef={containerRef}
+      <div
+        ref={containerRef}
         className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-900 relative w-full"
         onScroll={handleScroll}
-      />
+      >
+        <div className="min-h-full">
+          {messageItems}
+        </div>
+      </div>
     </div>
   );
 }

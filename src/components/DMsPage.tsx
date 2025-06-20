@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallba
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { DEFAULT_AVATAR_COLOR } from '../utils/avatarColors';
-import { VirtualizedMessageList, VirtualizedMessageListHandle } from './VirtualizedMessageList';
 import { DMConversation } from '../types/dm';
 
 interface User {
@@ -39,18 +38,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<VirtualizedMessageListHandle>(null);
-  const [listHeight, setListHeight] = useState(0);
-
-  useLayoutEffect(() => {
-    const container = messageContainerRef.current;
-    if (!container) return;
-    const update = () => setListHeight(container.clientHeight);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (onConversationOpen) {
@@ -164,8 +151,15 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
       cleanupConnections();
     };
   }, [selectedConversation?.id, currentUser.id]);
+
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    listRef.current?.scrollToItem(selectedConversation?.messages.length ?? 0);
+    const container = messageContainerRef.current;
+    if (!container || !selectedConversation) return;
+    
+    setTimeout(() => {
+      container.scrollTop = container.scrollHeight;
+    }, 100);
   }, [selectedConversation?.messages]);
 
   useEffect(() => {
@@ -274,75 +268,73 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     });
   };
 
-  const messageItems = useMemo(() => {
-    if (!selectedConversation) return [] as { key: string; element: JSX.Element }[];
-    return selectedConversation.messages.map((message) => ({
-      key: message.id,
-      element: (
-        <div className="px-2 sm:px-4 pb-3 sm:pb-4">
-          <div
-            className={`flex gap-2 sm:gap-3 ${
-            message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
-            } max-w-full`}
+  const renderMessages = () => {
+    if (!selectedConversation) return null;
+    
+    return selectedConversation.messages.map((message) => (
+      <div key={message.id} className="px-2 sm:px-4 pb-3 sm:pb-4">
+        <div
+          className={`flex gap-2 sm:gap-3 ${
+          message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
+          } max-w-full`}
+        >
+          <button
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
+            onClick={() => {
+              onUserClick?.(message.sender_id);
+            }}
+            title={`View ${
+              message.sender_id === currentUser.id
+                ? currentUser.username
+                : getOtherUser(selectedConversation).username
+            }'s profile`}
           >
-            <button
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
-              onClick={() => {
-                onUserClick?.(message.sender_id);
-              }}
-              title={`View ${
-                message.sender_id === currentUser.id
-                  ? currentUser.username
-                  : getOtherUser(selectedConversation).username
-              }'s profile`}
-            >
-              {message.sender_id === currentUser.id ? (
-                currentUserData?.avatar_url ? (
-                  <img src={currentUserData.avatar_url} alt={currentUser.username} className="w-full h-full object-cover" />
-                ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center text-white text-xs sm:text-sm font-bold"
-                    style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}
-                  >
-                    {currentUser.username.charAt(0).toUpperCase()}
-                  </div>
-                )
-              ) : (() => {
-                const otherUserData = getOtherUserData(selectedConversation);
-                return otherUserData.avatar_url ? (
-                  <img src={otherUserData.avatar_url} alt={otherUserData.username} className="w-full h-full object-cover" />
-                ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center text-white text-xs sm:text-sm font-bold"
-                    style={{ backgroundColor: otherUserData.avatar_color }}
-                  >
-                    {otherUserData.username.charAt(0).toUpperCase()}
-                  </div>
-                );
-              })()}
-            </button>
+            {message.sender_id === currentUser.id ? (
+              currentUserData?.avatar_url ? (
+                <img src={currentUserData.avatar_url} alt={currentUser.username} className="w-full h-full object-cover" />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center text-white text-xs sm:text-sm font-bold"
+                  style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}
+                >
+                  {currentUser.username.charAt(0).toUpperCase()}
+                </div>
+              )
+            ) : (() => {
+              const otherUserData = getOtherUserData(selectedConversation);
+              return otherUserData.avatar_url ? (
+                <img src={otherUserData.avatar_url} alt={otherUserData.username} className="w-full h-full object-cover" />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center text-white text-xs sm:text-sm font-bold"
+                  style={{ backgroundColor: otherUserData.avatar_color }}
+                >
+                  {otherUserData.username.charAt(0).toUpperCase()}
+                </div>
+              );
+            })()}
+          </button>
 
+          <div
+            className={`flex flex-col max-w-[75%] sm:max-w-[65%] ${
+              message.sender_id === currentUser.id ? 'items-end' : 'items-start'
+            }`}
+          >
             <div
-              className={`flex flex-col max-w-[75%] sm:max-w-[65%] ${
-                message.sender_id === currentUser.id ? 'items-end' : 'items-start'
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl ${
+                message.sender_id === currentUser.id
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md shadow-lg border border-blue-500/20'
+                  : 'bg-gray-700 text-gray-100 rounded-bl-md shadow-lg border border-gray-600/50'
               }`}
             >
-              <div
-                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl ${
-                  message.sender_id === currentUser.id
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md shadow-lg border border-blue-500/20'
-                    : 'bg-gray-700 text-gray-100 rounded-bl-md shadow-lg border border-gray-600/50'
-                }`}
-              >
-                <p className="text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap">{message.content}</p>
-              </div>
-              <span className="text-xs text-gray-400 mt-1">{formatTime(message.created_at)}</span>
+              <p className="text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap">{message.content}</p>
             </div>
+            <span className="text-xs text-gray-400 mt-1">{formatTime(message.created_at)}</span>
           </div>
         </div>
-      ),
-    }));
-  }, [selectedConversation, currentUser, currentUserData, onUserClick, getOtherUser, getOtherUserData]);
+      </div>
+    ));
+  };
 
   return (
     <div className="h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
@@ -591,7 +583,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
 
               {/* Messages */}
               {selectedConversation.messages.length === 0 ? (
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 flex items-center justify-center text-center" ref={messageContainerRef}>
+                <div className="flex-1 flex items-center justify-center text-center p-4">
                   <div>
                     <MessageSquare className="w-12 h-12 text-gray-500 mx-auto mb-4" />
                     <p className="text-gray-400 text-lg mb-2">Start a conversation</p>
@@ -601,13 +593,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
                   </div>
                 </div>
               ) : (
-                <VirtualizedMessageList
-                  ref={listRef}
-                  items={messageItems}
-                  height={listHeight}
-                  outerRef={messageContainerRef}
-                  className="flex-1 overflow-y-auto bg-gray-900 w-full"
-                />
+                <div
+                  ref={messageContainerRef}
+                  className="flex-1 overflow-y-auto bg-gray-900 w-full p-2"
+                >
+                  {renderMessages()}
+                </div>
               )}
 
               {/* Message Input */}
