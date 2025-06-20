@@ -39,9 +39,60 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [listHeight, setListHeight] = useState(0);
   const messageContainerRef = useRef<HTMLDivElement>(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   // Effect to handle external conversation selection (from banner clicks)
   useEffect(() => {
-    if (activeConversationId && !selectedConversation) {
+    if (!activeConversationId) return;
+    
+    // If we already have this conversation selected, don't do anything
+    if (selectedConversation?.id === activeConversationId) return;
+    
+    console.log('Looking for conversation:', activeConversationId);
+    console.log('Available conversations:', conversations.map(c => c.id));
+    
+    // First, try to find the conversation in the current list
+    const conversation = conversations.find(conv => conv.id === activeConversationId);
+    if (conversation) {
+      console.log('Found conversation in list, selecting:', conversation.id);
+      setSelectedConversation(conversation);
+    } else if (conversations.length > 0 && !isLoadingConversation) {
+      // If conversation not found and we have conversations loaded, fetch it specifically
+      console.log('Conversation not found in list, fetching:', activeConversationId);
+      setIsLoadingConversation(true);
+      
+      const fetchConversation = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('dms')
+            .select('*')
+            .eq('id', activeConversationId)
+            .single();
+
+          if (error) {
+            console.error('Error fetching conversation:', error);
+            return;
+          }
+          
+          if (data) {
+            console.log('Fetched conversation:', data.id);
+            setSelectedConversation(data);
+            // Add to conversations list if not already there
+            setConversations(prev => {
+              const exists = prev.find(conv => conv.id === data.id);
+              if (exists) return prev;
+              return [data, ...prev];
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching conversation:', err);
+        } finally {
+          setIsLoadingConversation(false);
+        }
+      };
+      
+      fetchConversation();
+    }
+  }, [activeConversationId, conversations, selectedConversation, isLoadingConversation]);
       const conversation = conversations.find(conv => conv.id === activeConversationId);
       if (conversation) {
         setSelectedConversation(conversation);
@@ -74,17 +125,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     }
   }, [activeConversationId, conversations, selectedConversation]);
 
-  // Effect to handle activeConversationId changes when conversations are loaded
-  useEffect(() => {
-    if (activeConversationId && conversations.length > 0 && !selectedConversation) {
-      const conversation = conversations.find(conv => conv.id === activeConversationId);
-      if (conversation) {
-        setSelectedConversation(conversation);
-      }
-    }
-  }, [activeConversationId, conversations, selectedConversation]);
-
-
   useLayoutEffect(() => {
     const updateHeight = () => {
       if (messageContainerRef.current) {
@@ -103,6 +143,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   useEffect(() => {
     if (onConversationOpen) {
       onConversationOpen(selectedConversation ? selectedConversation.id : null);
+      console.log('Conversation opened:', selectedConversation?.id);
     }
 
     if (selectedConversation && markAsRead) {
@@ -447,6 +488,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
                             key={conversation.id}
                             onClick={() => {
                               setSelectedConversation(conversation);
+                              console.log('Manually selected conversation:', conversation.id);
                             }}
                             className={`relative w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${
                               selectedConversation?.id === conversation.id ? 'bg-gray-700/60 border-emerald-500/30' : ''
@@ -514,6 +556,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
                             key={user.id}
                             onClick={() => {
                               startConversation(user);
+                              console.log('Starting conversation with user:', user.id);
                             }}
                             className="relative w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30"
                           >

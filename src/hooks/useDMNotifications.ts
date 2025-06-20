@@ -102,6 +102,7 @@ export function useDMNotifications(
           setUnreadConversations(prev => new Set(prev).add(conv.id));
           
           const senderUsername = last.sender_id === conv.user1_id ? conv.user1_username : conv.user2_username;
+          console.log('Setting DM banner for conversation:', conv.id);
           setBanner({
             conversationId: conv.id,
             senderId: last.sender_id,
