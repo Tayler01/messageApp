@@ -19,70 +19,78 @@ export function useDMNotifications(
 ) {
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [banner, setBanner] = useState<DMNotification | null>(null);
-  const [isVisible, setIsVisible] = useState(
-    typeof document !== 'undefined' && document.visibilityState === 'visible'
-  );
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
-  // Track page visibility to manage realtime subscription
-  useEffect(() => {
-    const handleVisibility = () => {
-      setIsVisible(document.visibilityState === 'visible');
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, []);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Fetch initial conversations to determine unread status
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId || hasInitialized) return;
 
     const fetchInitial = async () => {
-      const { data } = await supabase
-        .from('dms')
-        .select('id, user1_id, user2_id, user1_username, user2_username, messages')
-        .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`);
+      try {
+        const { data } = await supabase
+          .from('dms')
+          .select('id, user1_id, user2_id, user1_username, user2_username, messages')
+          .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
+          .order('updated_at', { ascending: false });
 
-      const newUnread = new Set<string>();
-      (data || []).forEach((conv: DMConversation) => {
-        const messages = conv.messages as DMMessage[];
-        if (!messages || messages.length === 0) return;
-        const last = messages[messages.length - 1];
-        const lastRead = localStorage.getItem(`dm_last_read_${conv.id}`);
-        if (!lastRead || new Date(last.created_at) > new Date(lastRead)) {
-          newUnread.add(conv.id);
-        }
-      });
-      setUnreadConversations(newUnread);
+        const newUnread = new Set<string>();
+        (data || []).forEach((conv: DMConversation) => {
+          const messages = conv.messages as DMMessage[];
+          if (!messages || messages.length === 0) return;
+          const last = messages[messages.length - 1];
+          
+          // Skip if the last message is from the current user
+          if (last.sender_id === currentUserId) return;
+          
+          const lastRead = localStorage.getItem(`dm_last_read_${conv.id}`);
+          if (!lastRead || new Date(last.created_at) > new Date(lastRead)) {
+            newUnread.add(conv.id);
+          }
+        });
+        setUnreadConversations(newUnread);
+        setHasInitialized(true);
+      } catch (error) {
+        console.error('Error fetching initial DM conversations:', error);
+        setHasInitialized(true);
+      }
     };
 
     fetchInitial();
-  }, [currentUserId]);
+  }, [currentUserId, hasInitialized]);
 
-  // Subscribe to DM updates when the page is visible
+  // Subscribe to DM updates
   useEffect(() => {
-    if (!currentUserId || !isVisible) return;
+    if (!currentUserId || !hasInitialized) return;
+
+    // Clean up any existing subscription
+    if (channelRef.current) {
+      channelRef.current.unsubscribe();
+      channelRef.current = null;
+    }
 
     const channel = supabase
       .channel('dm_notifications')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dms' }, payload => {
         const conv = payload.new as DMConversation;
+        
+        // Only process conversations involving the current user
         if (conv.user1_id !== currentUserId && conv.user2_id !== currentUserId) return;
+        
         const messages = conv.messages as DMMessage[];
         if (!messages || messages.length === 0) return;
+        
         const last = messages[messages.length - 1];
-        if (last.sender_id === currentUserId) return; // ignore own messages
+        
+        // Ignore messages sent by the current user
+        if (last.sender_id === currentUserId) return;
 
         const key = `dm_last_read_${conv.id}`;
         const lastRead = localStorage.getItem(key);
         const isUnread = !lastRead || new Date(last.created_at) > new Date(lastRead);
 
+        // If currently viewing this specific conversation, mark as read immediately
         if (currentPage === 'dms' && activeConversationId === conv.id) {
-          // If viewing the conversation, mark as read
           localStorage.setItem(key, last.created_at);
           setUnreadConversations(prev => {
             const ns = new Set(prev);
@@ -90,7 +98,9 @@ export function useDMNotifications(
             return ns;
           });
         } else if (isUnread) {
+          // Add to unread and show banner notification
           setUnreadConversations(prev => new Set(prev).add(conv.id));
+          
           const senderUsername = last.sender_id === conv.user1_id ? conv.user1_username : conv.user2_username;
           setBanner({
             conversationId: conv.id,
@@ -106,18 +116,12 @@ export function useDMNotifications(
     channelRef.current = channel;
 
     return () => {
-      channel.unsubscribe();
-      channelRef.current = null;
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
     };
-  }, [currentUserId, currentPage, activeConversationId, isVisible]);
-
-  // Unsubscribe when the page becomes hidden
-  useEffect(() => {
-    if (!isVisible && channelRef.current) {
-      channelRef.current.unsubscribe();
-      channelRef.current = null;
-    }
-  }, [isVisible]);
+  }, [currentUserId, currentPage, activeConversationId, hasInitialized]);
 
   const markAsRead = (conversationId: string, timestamp: string) => {
     localStorage.setItem(`dm_last_read_${conversationId}`, timestamp);
