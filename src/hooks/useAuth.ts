@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_AVATAR_COLOR } from '../utils/avatarColors';
 import { User } from '@supabase/supabase-js';
 
 interface AuthUser {
@@ -55,7 +56,7 @@ export function useAuth() {
         id: authUser.id,
         email: authUser.email || '',
         username: profile?.username || authUser.email?.split('@')[0] || 'User',
-        avatar_color: profile?.avatar_color || '#3B82F6',
+        avatar_color: profile?.avatar_color || DEFAULT_AVATAR_COLOR,
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -63,7 +64,7 @@ export function useAuth() {
         id: authUser.id,
         email: authUser.email || '',
         username: authUser.email?.split('@')[0] || 'User',
-        avatar_color: '#3B82F6',
+        avatar_color: DEFAULT_AVATAR_COLOR,
       });
     } finally {
       setLoading(false);
