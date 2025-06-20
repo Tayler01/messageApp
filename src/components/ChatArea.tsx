@@ -193,7 +193,13 @@ export function ChatArea({
           onClick={async () => {
             console.log('Testing database connection...');
             try {
-              // Test database connection
+              // Import supabase here since it's not imported at the top
+              const { supabase } = await import('../lib/supabase');
+              
+              console.log('Current user ID:', currentUserId);
+              
+              // Test database connection first
+              console.log('Step 1: Testing basic connection...');
               const { data: testData, error: testError } = await supabase
                 .from('messages')
                 .select('count')
@@ -201,13 +207,27 @@ export function ChatArea({
               
               console.log('Database test result:', { testData, testError });
               
-              // Try to insert a test message
+              if (testError) {
+                throw new Error(`Database connection failed: ${testError.message}`);
+              }
+              
+              // Check if user is properly authenticated
+              console.log('Step 2: Checking authentication...');
+              const { data: { user }, error: authError } = await supabase.auth.getUser();
+              console.log('Auth check result:', { user: user?.id, authError });
+              
+              if (authError || !user) {
+                throw new Error('User not authenticated');
+              }
+              
+              // Try to insert a test message with the authenticated user
+              console.log('Step 3: Inserting test message...');
               const { data, error } = await supabase
                 .from('messages')
                 .insert({
                   content: 'Hello! This is a test message from the system.',
                   user_name: 'System',
-                  user_id: currentUserId,
+                  user_id: user.id,
                   avatar_color: '#3B82F6'
                 })
                 .select()
@@ -216,19 +236,28 @@ export function ChatArea({
               console.log('Test message result:', { data, error });
               if (error) {
                 console.error('Failed to send test message:', error);
-                alert(`Database error: ${error.message}`);
+                alert(`Database error: ${error.message}\nCode: ${error.code}\nDetails: ${error.details}`);
               } else {
                 console.log('Test message sent successfully!');
+                alert('Test message sent successfully! The chat should now show messages.');
               }
             } catch (err) {
               console.error('Error testing database:', err);
-              alert(`Connection error: ${err}`);
+              alert(`Connection error: ${err instanceof Error ? err.message : String(err)}`);
             }
           }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Test Database Connection
         </button>
+        
+        <div className="mt-4 text-xs text-gray-500 max-w-md">
+          <p>Debug info:</p>
+          <p>User ID: {currentUserId}</p>
+          <p>Messages count: {messages.length}</p>
+          <p>Loading: {loading ? 'Yes' : 'No'}</p>
+          <p>Error: {error || 'None'}</p>
+        </div>
       </div>
     );
   }

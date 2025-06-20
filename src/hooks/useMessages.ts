@@ -166,6 +166,11 @@ export function useMessages() {
     try {
       console.log('Sending message:', { content, userName, userId });
       
+      // Validate that userId is a valid UUID
+      if (!userId || userId === 'test-user-id') {
+        throw new Error('Invalid user ID - user must be authenticated');
+      }
+      
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -193,6 +198,7 @@ export function useMessages() {
     } catch (err) {
       console.error('Error sending message:', err);
       setError(err instanceof Error ? err.message : 'Failed to send message');
+      throw err; // Re-throw so the UI can handle it
     }
   };
 

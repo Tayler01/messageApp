@@ -76,14 +76,19 @@ function App() {
 
   const handleSendMessage = async (content: string) => {
     if (user) {
-      // Get the latest user data including avatar_url
-      const { data: userData } = await supabase
-        .from('users')
-        .select('avatar_url')
-        .eq('id', user.id)
-        .single();
-      
-      await sendMessage(content, user.username, user.id, user.avatar_color, userData?.avatar_url || null);
+      try {
+        // Get the latest user data including avatar_url
+        const { data: userData } = await supabase
+          .from('users')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        await sendMessage(content, user.username, user.id, user.avatar_color, userData?.avatar_url || null);
+      } catch (err) {
+        console.error('Failed to send message:', err);
+        // You could show a toast notification here
+      }
     }
   };
 
