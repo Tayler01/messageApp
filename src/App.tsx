@@ -36,7 +36,7 @@ function App() {
     sendMessage,
     fetchOlderMessages,
     hasMore,
-  } = useMessages(user?.id ?? null); // Pass user ID but hook will work regardless
+  } = useMessages();
 
   const {
     unreadConversations,
