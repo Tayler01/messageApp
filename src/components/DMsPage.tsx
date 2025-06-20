@@ -93,37 +93,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
       fetchConversation();
     }
   }, [activeConversationId, conversations, selectedConversation, isLoadingConversation]);
-      const conversation = conversations.find(conv => conv.id === activeConversationId);
-      if (conversation) {
-        setSelectedConversation(conversation);
-      } else if (conversations.length > 0) {
-        // If conversation not found in current list, fetch it
-        const fetchConversation = async () => {
-          try {
-            const { data, error } = await supabase
-              .from('dms')
-              .select('*')
-              .eq('id', activeConversationId)
-              .single();
-
-            if (error) throw error;
-            if (data) {
-              setSelectedConversation(data);
-              // Add to conversations list if not already there
-              setConversations(prev => {
-                const exists = prev.find(conv => conv.id === data.id);
-                if (exists) return prev;
-                return [data, ...prev];
-              });
-            }
-          } catch (err) {
-            console.error('Error fetching conversation:', err);
-          }
-        };
-        fetchConversation();
-      }
-    }
-  }, [activeConversationId, conversations, selectedConversation]);
 
   useLayoutEffect(() => {
     const updateHeight = () => {
