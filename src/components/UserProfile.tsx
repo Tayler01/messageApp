@@ -8,12 +8,7 @@ import type { AuthUser } from '../hooks/useAuth';
 type PageType = 'group-chat' | 'dms' | 'profile';
 
 interface UserProfileProps {
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    avatar_color: string;
-  };
+  user: AuthUser;
   onUserUpdate: (updatedUser: AuthUser) => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
@@ -129,6 +124,7 @@ export function UserProfile({ user, onUserUpdate, currentPage, onPageChange }: U
         ...user,
         username: editData.username.trim(),
         avatar_color: editData.avatar_color,
+        avatar_url: editData.avatar_url.trim() || null,
       });
 
       setSuccess(true);

@@ -12,7 +12,6 @@ import { useAuth } from './hooks/useAuth';
 import { useDMNotifications } from './hooks/useDMNotifications';
 import { usePushSubscription } from './hooks/usePushSubscription';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import { supabase } from './lib/supabase';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -75,14 +74,13 @@ function App() {
 
   const handleSendMessage = async (content: string) => {
     if (user) {
-      // Get the latest user data including avatar_url
-      const { data: userData } = await supabase
-        .from('users')
-        .select('avatar_url')
-        .eq('id', user.id)
-        .single();
-      
-      await sendMessage(content, user.username, user.id, user.avatar_color, userData?.avatar_url || null);
+      await sendMessage(
+        content,
+        user.username,
+        user.id,
+        user.avatar_color,
+        user.avatar_url
+      );
     }
   };
 

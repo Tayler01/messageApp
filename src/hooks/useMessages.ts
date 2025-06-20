@@ -4,7 +4,8 @@ import { Message } from '../types/message';
 
 const PAGE_SIZE = 20;
 
-export function useMessages(userId: string | null) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function useMessages(_userId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
