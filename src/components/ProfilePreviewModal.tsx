@@ -24,30 +24,30 @@ export function ProfilePreviewModal({ userId, onClose }: ProfilePreviewModalProp
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, username, email, bio, avatar_color, avatar_url, banner_url, created_at')
+          .eq('id', userId)
+          .single();
+
+        if (error) throw error;
+
+        setProfile(data);
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+        setError('Failed to load user profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchUserProfile();
   }, [userId]);
-
-  const fetchUserProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, username, email, bio, avatar_color, avatar_url, banner_url, created_at')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      setProfile(data);
-    } catch (err) {
-      console.error('Error fetching user profile:', err);
-      setError('Failed to load user profile');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatJoinDate = (dateString: string) => {
     if (!dateString) return 'Unknown';

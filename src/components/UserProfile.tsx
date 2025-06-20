@@ -3,6 +3,7 @@ import { X, User, Mail, Palette, Save, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
 import { AVATAR_COLORS } from '../utils/avatarColors';
+import type { AuthUser } from '../hooks/useAuth';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -13,15 +14,14 @@ interface UserProfileProps {
     username: string;
     avatar_color: string;
   };
-  onClose: () => void;
-  onUserUpdate: (updatedUser: any) => void;
+  onUserUpdate: (updatedUser: AuthUser) => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
 }
 
 const avatarColors = AVATAR_COLORS;
 
-export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageChange }: UserProfileProps) {
+export function UserProfile({ user, onUserUpdate, currentPage, onPageChange }: UserProfileProps) {
   const [profileData, setProfileData] = useState({
     username: user.username,
     bio: '',
@@ -48,38 +48,38 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   const [uploadingBanner, setUploadingBanner] = useState(false);
 
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    const fetchUserProfile = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('username, bio, avatar_color, avatar_url, banner_url, created_at')
+          .eq('id', user.id)
+          .single();
 
-  const fetchUserProfile = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('username, bio, avatar_color, avatar_url, banner_url, created_at')
-        .eq('id', user.id)
-        .single();
+        if (error) throw error;
 
-      if (error) throw error;
-
-      if (data) {
-        const profile = {
-          username: data.username || user.username,
-          bio: data.bio || '',
-          avatar_color: data.avatar_color || user.avatar_color,
-          avatar_url: data.avatar_url || '',
-          banner_url: data.banner_url || '',
-          created_at: data.created_at || '',
-        };
-        setProfileData(profile);
-        setEditData(profile);
+        if (data) {
+          const profile = {
+            username: data.username || user.username,
+            bio: data.bio || '',
+            avatar_color: data.avatar_color || user.avatar_color,
+            avatar_url: data.avatar_url || '',
+            banner_url: data.banner_url || '',
+            created_at: data.created_at || '',
+          };
+          setProfileData(profile);
+          setEditData(profile);
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchUserProfile();
+  }, [user.id, user.username, user.avatar_color]);
 
   const handleSave = async () => {
     if (!editData.username.trim()) {

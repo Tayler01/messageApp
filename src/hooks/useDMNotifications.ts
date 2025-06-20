@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import type { DMConversation, DMMessage } from '../types/dm';
 
 export type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -43,12 +44,12 @@ export function useDMNotifications(
     const fetchInitial = async () => {
       const { data } = await supabase
         .from('dms')
-        .select('id, messages')
+        .select('id, user1_id, user2_id, user1_username, user2_username, messages')
         .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`);
 
       const newUnread = new Set<string>();
-      (data || []).forEach((conv: any) => {
-        const messages = conv.messages as any[];
+      (data || []).forEach((conv: DMConversation) => {
+        const messages = conv.messages as DMMessage[];
         if (!messages || messages.length === 0) return;
         const last = messages[messages.length - 1];
         const lastRead = localStorage.getItem(`dm_last_read_${conv.id}`);
@@ -69,9 +70,9 @@ export function useDMNotifications(
     const channel = supabase
       .channel('dm_notifications')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dms' }, payload => {
-        const conv = payload.new as any;
+        const conv = payload.new as DMConversation;
         if (conv.user1_id !== currentUserId && conv.user2_id !== currentUserId) return;
-        const messages = conv.messages as any[];
+        const messages = conv.messages as DMMessage[];
         if (!messages || messages.length === 0) return;
         const last = messages[messages.length - 1];
         if (last.sender_id === currentUserId) return; // ignore own messages

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { DEFAULT_AVATAR_COLOR } from '../utils/avatarColors';
 import { VirtualizedMessageList, VirtualizedMessageListHandle } from './VirtualizedMessageList';
+import { DMConversation } from '../types/dm';
 
 interface User {
   id: string;
@@ -12,22 +13,6 @@ interface User {
   bio?: string;
 }
 
-interface DMMessage {
-  id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-}
-
-interface DMConversation {
-  id: string;
-  user1_id: string;
-  user2_id: string;
-  user1_username: string;
-  user2_username: string;
-  messages: DMMessage[];
-  updated_at: string;
-}
 
 interface DMsPageProps {
   currentUser: {
@@ -80,114 +65,108 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   }, [selectedConversation, onConversationOpen, markAsRead]);
 
   useEffect(() => {
+    const cleanupConnections = () => {
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
+    };
+
+    const setupRealtimeSubscription = () => {
+      cleanupConnections();
+
+      const channel = supabase
+        .channel('dms_channel')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'dms' },
+          (payload) => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const updatedConversation = payload.new as DMConversation;
+              setConversations(prev => {
+                const existingIndex = prev.findIndex(conv => conv.id === updatedConversation.id);
+                if (existingIndex >= 0) {
+                  const updated = [...prev];
+                  updated[existingIndex] = updatedConversation;
+                  return updated.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+                } else {
+                  return [updatedConversation, ...prev];
+                }
+              });
+
+              if (selectedConversation?.id === updatedConversation.id) {
+                setSelectedConversation(updatedConversation);
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      channelRef.current = channel;
+    };
+
+    const fetchCurrentUserData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, username, avatar_url, avatar_color, bio')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (error) throw error;
+        setCurrentUserData(data);
+      } catch (err) {
+        console.error('Error fetching current user data:', err);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, username, avatar_url, avatar_color, bio')
+          .neq('id', currentUser.id)
+          .order('username');
+
+        if (error) throw error;
+        setUsers(data || []);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+      }
+    };
+
+    const fetchConversations = async () => {
+      try {
+        setLoading(true);
+
+        const { data, error } = await supabase
+          .from('dms')
+          .select('*')
+          .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
+          .order('updated_at', { ascending: false });
+
+        if (error) throw error;
+        setConversations(data || []);
+      } catch (err) {
+        console.error('Error fetching conversations:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchCurrentUserData();
     fetchUsers();
     fetchConversations();
-    
     setupRealtimeSubscription();
 
     return () => {
       cleanupConnections();
     };
-  }, [selectedConversation?.id]);
-
-  const cleanupConnections = () => {
-    if (channelRef.current) {
-      channelRef.current.unsubscribe();
-      channelRef.current = null;
-    }
-  };
-
-  const setupRealtimeSubscription = () => {
-    cleanupConnections();
-
-    const channel = supabase
-      .channel('dms_channel')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'dms' },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const updatedConversation = payload.new as DMConversation;
-            setConversations(prev => {
-              const existingIndex = prev.findIndex(conv => conv.id === updatedConversation.id);
-              if (existingIndex >= 0) {
-                const updated = [...prev];
-                updated[existingIndex] = updatedConversation;
-                return updated.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-              } else {
-                return [updatedConversation, ...prev];
-              }
-            });
-            
-            // Update selected conversation if it's the same one
-            if (selectedConversation?.id === updatedConversation.id) {
-              setSelectedConversation(updatedConversation);
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-  };
-
+  }, [selectedConversation?.id, currentUser.id]);
   useEffect(() => {
-    scrollToBottom();
+    listRef.current?.scrollToItem(selectedConversation?.messages.length ?? 0);
   }, [selectedConversation?.messages]);
 
-  const scrollToBottom = () => {
-    listRef.current?.scrollToItem(selectedConversation?.messages.length ?? 0);
-  };
-
-  const fetchCurrentUserData = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, username, avatar_url, avatar_color, bio')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (error) throw error;
-      setCurrentUserData(data);
-    } catch (err) {
-      console.error('Error fetching current user data:', err);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, username, avatar_url, avatar_color, bio')
-        .neq('id', currentUser.id)
-        .order('username');
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (err) {
-      console.error('Error fetching users:', err);
-    }
-  };
-
-  const fetchConversations = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('dms')
-        .select('*')
-        .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-      setConversations(data || []);
-    } catch (err) {
-      console.error('Error fetching conversations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const startConversation = async (user: User) => {
     try {
@@ -239,7 +218,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     }
   };
 
-  const getOtherUser = (conversation: DMConversation) => {
+  const getOtherUser = useCallback((conversation: DMConversation) => {
     if (conversation.user1_id === currentUser.id) {
       return {
         id: conversation.user2_id,
@@ -251,25 +230,17 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
         username: conversation.user1_username
       };
     }
-  };
+  }, [currentUser.id]);
 
-  const getOtherUserData = (conversation: DMConversation) => {
+  const getOtherUserData = useCallback((conversation: DMConversation) => {
     const otherUser = getOtherUser(conversation);
     return users.find(u => u.id === otherUser.id) || {
       id: otherUser.id,
       username: otherUser.username,
       avatar_color: DEFAULT_AVATAR_COLOR
     };
-  };
+  }, [getOtherUser, users]);
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredConversations = conversations.filter(conv => {
-    const otherUser = getOtherUser(conv);
-    return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
-  });
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {
@@ -344,7 +315,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
         </div>
       ),
     }));
-  }, [selectedConversation, currentUser, currentUserData, onUserClick]);
+  }, [selectedConversation, currentUser, currentUserData, onUserClick, getOtherUser, getOtherUserData]);
 
   return (
     <div className="h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">

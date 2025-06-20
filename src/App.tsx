@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatArea } from './components/ChatArea';
@@ -60,7 +60,6 @@ function App() {
     return (
       <UserProfile
         user={user}
-        onClose={() => setCurrentPage('group-chat')}
         onUserUpdate={updateUser}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
