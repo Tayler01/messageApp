@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getRandomColor } from '../utils/avatarColors';
 
 interface AuthFormProps {
   onAuthSuccess: (user: any) => void;
@@ -91,14 +92,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     }
   };
 
-  const getRandomColor = () => {
-    const colors = [
-      '#EF4444', '#F97316', '#F59E0B', '#84CC16', 
-      '#22C55E', '#06B6D4', '#3B82F6', '#6366F1', 
-      '#8B5CF6', '#EC4899', '#F43F5E', '#64748B'
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
