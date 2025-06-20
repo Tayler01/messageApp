@@ -12,6 +12,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl as string, supabaseAnonKey as string);
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
 export interface Database {
   public: {
     Tables: {
@@ -83,19 +91,19 @@ export interface Database {
         Row: {
           id: string;
           user_id: string | null;
-          subscription: any;
+          subscription: Json;
           created_at: string | null;
         };
         Insert: {
           id?: string;
           user_id?: string | null;
-          subscription: any;
+          subscription: Json;
           created_at?: string | null;
         };
         Update: {
           id?: string;
           user_id?: string | null;
-          subscription?: any;
+          subscription?: Json;
           created_at?: string | null;
         };
       };
@@ -106,7 +114,7 @@ export interface Database {
           user2_id: string;
           user1_username: string;
           user2_username: string;
-          messages: any | null;
+          messages: Json | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -116,7 +124,7 @@ export interface Database {
           user2_id: string;
           user1_username: string;
           user2_username: string;
-          messages?: any | null;
+          messages?: Json | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -126,7 +134,7 @@ export interface Database {
           user2_id?: string;
           user1_username?: string;
           user2_username?: string;
-          messages?: any | null;
+          messages?: Json | null;
           created_at?: string | null;
           updated_at?: string | null;
         };

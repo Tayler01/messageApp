@@ -262,14 +262,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     };
   };
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredConversations = conversations.filter(conv => {
-    const otherUser = getOtherUser(conv);
-    return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
-  });
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {

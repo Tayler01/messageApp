@@ -3,6 +3,7 @@ import { X, User, Mail, Palette, Save, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
 import { AVATAR_COLORS } from '../utils/avatarColors';
+import type { AuthUser } from '../hooks/useAuth';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -13,15 +14,14 @@ interface UserProfileProps {
     username: string;
     avatar_color: string;
   };
-  onClose: () => void;
-  onUserUpdate: (updatedUser: any) => void;
+  onUserUpdate: (updatedUser: AuthUser) => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
 }
 
 const avatarColors = AVATAR_COLORS;
 
-export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageChange }: UserProfileProps) {
+export function UserProfile({ user, onUserUpdate, currentPage, onPageChange }: UserProfileProps) {
   const [profileData, setProfileData] = useState({
     username: user.username,
     bio: '',

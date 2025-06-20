@@ -11,6 +11,21 @@ interface DMNotification {
   created_at: string;
 }
 
+interface DMMessage {
+  sender_id: string;
+  content: string;
+  created_at: string;
+}
+
+interface DMConversation {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  user1_username: string;
+  user2_username: string;
+  messages: DMMessage[];
+}
+
 export function useDMNotifications(
   currentUserId: string | null,
   currentPage: PageType,
@@ -47,8 +62,8 @@ export function useDMNotifications(
         .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`);
 
       const newUnread = new Set<string>();
-      (data || []).forEach((conv: any) => {
-        const messages = conv.messages as any[];
+      (data || []).forEach((conv: DMConversation) => {
+        const messages = conv.messages as DMMessage[];
         if (!messages || messages.length === 0) return;
         const last = messages[messages.length - 1];
         const lastRead = localStorage.getItem(`dm_last_read_${conv.id}`);
@@ -69,9 +84,9 @@ export function useDMNotifications(
     const channel = supabase
       .channel('dm_notifications')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dms' }, payload => {
-        const conv = payload.new as any;
+        const conv = payload.new as DMConversation;
         if (conv.user1_id !== currentUserId && conv.user2_id !== currentUserId) return;
-        const messages = conv.messages as any[];
+        const messages = conv.messages as DMMessage[];
         if (!messages || messages.length === 0) return;
         const last = messages[messages.length - 1];
         if (last.sender_id === currentUserId) return; // ignore own messages
