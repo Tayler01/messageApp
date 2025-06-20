@@ -101,25 +101,6 @@ export function ChatArea({
     };
   }, [handleScroll]);
 
-  if (loading && messages.length === 0) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} onRetry={onRetry} />;
-  }
-
-  if (messages.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8 text-center flex-1">
-        <div>
-          <p className="text-gray-400 text-lg mb-2">No messages yet</p>
-          <p className="text-gray-500">Be the first to say hello! 👋</p>
-        </div>
-      </div>
-    );
-  }
-
   const items = useMemo(() => {
     const arr: { key: string; element: JSX.Element }[] = [];
     let lastDateLabel: string | null = null;
@@ -153,6 +134,25 @@ export function ChatArea({
 
     return arr;
   }, [messages, currentUserId, onUserClick]);
+
+  if (loading && messages.length === 0) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} onRetry={onRetry} />;
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-8 text-center flex-1">
+        <div>
+          <p className="text-gray-400 text-lg mb-2">No messages yet</p>
+          <p className="text-gray-500">Be the first to say hello! 👋</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <VirtualizedMessageList
