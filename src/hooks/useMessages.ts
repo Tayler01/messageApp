@@ -16,7 +16,7 @@ export function useMessages(userId: string | null) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
-    if (!userId) return;
+    // Always fetch messages for group chat, regardless of userId
 
     fetchLatestMessages();
 
@@ -48,18 +48,20 @@ export function useMessages(userId: string | null) {
     return () => {
       channel.unsubscribe();
     };
-  }, [userId]);
+  }, []); // Remove userId dependency since group chat should always load
 
   useEffect(() => {
-    if (!userId) return;
+    // Only start the interval if we have messages loaded
+    if (messages.length === 0) return;
 
     const interval = setInterval(fetchNewMessages, 15000);
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [messages.length]);
 
   const fetchLatestMessages = async () => {
     try {
       setLoading(true);
+      setError(null);
 
       const { data, error } = await supabase
         .from('messages')
@@ -79,6 +81,7 @@ export function useMessages(userId: string | null) {
 
       setHasMore((data || []).length === PAGE_SIZE);
     } catch (err) {
+      console.error('Error fetching messages:', err);
       setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
       setLoading(false);
@@ -114,6 +117,7 @@ export function useMessages(userId: string | null) {
 
       setHasMore((data || []).length === PAGE_SIZE);
     } catch (err) {
+      console.error('Error fetching older messages:', err);
       setError(err instanceof Error ? err.message : 'Failed to load older messages');
     } finally {
       setLoadingOlder(false);
@@ -180,6 +184,7 @@ export function useMessages(userId: string | null) {
         }
       }
     } catch (err) {
+      console.error('Error sending message:', err);
       setError(err instanceof Error ? err.message : 'Failed to send message');
     }
   };
