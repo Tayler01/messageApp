@@ -58,15 +58,19 @@ export function ChatArea({
     const container = containerRef.current;
     if (!container || messages.length === 0) return;
 
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+    // Always scroll to bottom for new messages, with a small delay to ensure rendering
+    const scrollToBottom = () => {
+      if (listRef.current) {
+        listRef.current.scrollToItem(messages.length - 1);
+      }
+    };
 
-    if (!hasAutoScrolled.current) {
-      listRef.current?.scrollToItem(messages.length - 1);
-      hasAutoScrolled.current = true;
-    } else if (isNearBottom) {
-      listRef.current?.scrollToItem(messages.length - 1);
-    }
+    // Use requestAnimationFrame to ensure the list has rendered
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToBottom);
+    });
+
+    hasAutoScrolled.current = true;
   }, [messages]);
 
   const handleScroll = useCallback(() => {
@@ -155,14 +159,16 @@ export function ChatArea({
   }
 
   return (
-    <VirtualizedMessageList
-      ref={listRef}
-      items={items}
-      height={listHeight}
-      outerRef={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
-      onScroll={handleScroll}
-    />
+    <div className="flex-1 relative">
+      <VirtualizedMessageList
+        ref={listRef}
+        items={items}
+        height={listHeight}
+        outerRef={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900"
+        onScroll={handleScroll}
+      />
+    </div>
   );
 }
 
