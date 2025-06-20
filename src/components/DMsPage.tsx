@@ -37,6 +37,21 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [listHeight, setListHeight] = useState(0);
+  const messageContainerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const updateHeight = () => {
+      if (messageContainerRef.current) {
+        setListHeight(messageContainerRef.current.offsetHeight);
+      }
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+    };
   }, []);
 
   useEffect(() => {
@@ -151,6 +166,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
       cleanupConnections();
     };
   }, [selectedConversation?.id, currentUser.id]);
+
   useEffect(() => {
     const container = messageContainerRef.current;
     if (container && selectedConversation?.messages.length) {
