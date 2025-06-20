@@ -111,8 +111,13 @@ function App() {
   };
 
   const handleBannerNavigate = (conversationId: string) => {
+    // Clear any existing conversation selection first
+    setActiveConversationId(null);
+    // Then set the new conversation and navigate
+    setTimeout(() => {
+      setActiveConversationId(conversationId);
+    }, 0);
     setCurrentPage('dms');
-    setActiveConversationId(conversationId);
   };
   // Show DMs page
   if (currentPage === 'dms') {
