@@ -63,8 +63,9 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
         width="100%"
         ref={listRef}
         outerRef={outerRef}
-        className={className}
+        className={`${className} w-full`}
         onScroll={onScroll}
+        style={{ height: height, minHeight: height }}
       >
         {Row}
       </List>

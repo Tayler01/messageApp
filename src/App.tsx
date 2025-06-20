@@ -144,7 +144,7 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900">
+    <div className="flex flex-col h-screen bg-gray-900 overflow-hidden">
       <ChatHeader
         userName={user.username}
         onClearUser={signOut}
