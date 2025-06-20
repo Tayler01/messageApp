@@ -16,7 +16,7 @@ export function MessageBubble({ message, isOwnMessage, onUserClick }: MessageBub
   };
 
   return (
-    <div className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-2 sm:gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
       <button
         onClick={() => onUserClick?.(message.user_id)}
         className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer overflow-hidden relative"

@@ -1,4 +1,9 @@
-import React, { useRef, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
+import React, {
+  useRef,
+  useLayoutEffect,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import { VariableSizeList as List } from 'react-window';
 
 interface Item {
@@ -38,8 +43,20 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
       const rowRef = useRef<HTMLDivElement>(null);
 
       useLayoutEffect(() => {
-        const height = rowRef.current?.getBoundingClientRect().height ?? 80;
-        setSize(index, height);
+        const node = rowRef.current;
+        if (!node) return;
+
+        const measure = () => {
+          const height = node.getBoundingClientRect().height;
+          setSize(index, height);
+        };
+
+        measure();
+
+        const observer = new ResizeObserver(measure);
+        observer.observe(node);
+
+        return () => observer.disconnect();
       }, [index]);
 
       return (
@@ -60,6 +77,7 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
         height={height}
         itemCount={items.length}
         itemSize={getSize}
+        itemKey={(index) => items[index].key}
         width="100%"
         ref={listRef}
         outerRef={outerRef}
