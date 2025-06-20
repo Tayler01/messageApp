@@ -63,6 +63,19 @@ export function useMessages() {
       setLoading(true);
       setError(null);
 
+      // First, test the connection
+      console.log('Testing Supabase connection...');
+      const { data: connectionTest, error: connectionError } = await supabase
+        .from('messages')
+        .select('count')
+        .limit(1);
+      
+      console.log('Connection test:', { connectionTest, connectionError });
+      
+      if (connectionError) {
+        throw new Error(`Database connection failed: ${connectionError.message}`);
+      }
+
       const { data, error } = await supabase
         .from('messages')
         .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
@@ -70,6 +83,8 @@ export function useMessages() {
         .limit(PAGE_SIZE);
 
       console.log('Messages query result:', { data, error });
+      console.log('Raw data:', data);
+      console.log('Data length:', data?.length);
 
       if (error) throw error;
 
@@ -84,6 +99,8 @@ export function useMessages() {
           oldest: oldestTimestampRef.current,
           latest: latestTimestampRef.current
         });
+      } else {
+        console.log('No messages found in database');
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
