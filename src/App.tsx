@@ -10,6 +10,7 @@ import { NotificationBanner } from './components/NotificationBanner';
 import { useMessages } from './hooks/useMessages';
 import { useAuth } from './hooks/useAuth';
 import { useDMNotifications } from './hooks/useDMNotifications';
+import { usePushSubscription } from './hooks/usePushSubscription';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { supabase } from './lib/supabase';
 
@@ -37,6 +38,8 @@ function App() {
     clearBanner,
     markAsRead,
   } = useDMNotifications(user?.id ?? null, currentPage, activeConversationId);
+
+  usePushSubscription(user?.id ?? null);
 
   // Show loading spinner while checking auth
   if (authLoading) {
