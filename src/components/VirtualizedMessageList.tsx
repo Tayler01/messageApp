@@ -51,7 +51,9 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
 
     useImperativeHandle(ref, () => ({
       scrollToItem: (index: number) => {
-        listRef.current?.scrollToItem(index);
+        if (listRef.current && index >= 0) {
+          listRef.current.scrollToItem(index, 'end');
+        }
       },
     }));
 
@@ -65,6 +67,7 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListHandle, V
         outerRef={outerRef}
         className={className}
         onScroll={onScroll}
+        initialScrollOffset={999999} // Start at bottom
       >
         {Row}
       </List>

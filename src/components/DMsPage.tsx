@@ -164,7 +164,14 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     };
   }, [selectedConversation?.id, currentUser.id]);
   useEffect(() => {
-    listRef.current?.scrollToItem(selectedConversation?.messages.length ?? 0);
+    if (selectedConversation?.messages.length) {
+      // Use requestAnimationFrame to ensure the list has rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          listRef.current?.scrollToItem(selectedConversation.messages.length - 1);
+        });
+      });
+    }
   }, [selectedConversation?.messages]);
 
 
