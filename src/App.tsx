@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatArea } from './components/ChatArea';
@@ -12,6 +12,7 @@ import { useAuth } from './hooks/useAuth';
 import { useDMNotifications } from './hooks/useDMNotifications';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { supabase } from './lib/supabase';
+import { usePushNotifications } from './hooks/usePushNotifications';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -20,6 +21,8 @@ function App() {
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('group-chat');
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
+  usePushNotifications(user?.id ?? null);
 
   // Only call useMessages if user is authenticated
   const {
@@ -159,5 +162,6 @@ function App() {
     </div>
   );
 }
+
 
 export default App;
