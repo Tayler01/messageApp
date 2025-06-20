@@ -66,4 +66,8 @@
     overflow-wrap: break-word;
     hyphens: auto;
   }
+
+  .overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+  }
 }
