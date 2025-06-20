@@ -12,6 +12,7 @@ import { ErrorMessage } from './ErrorMessage';
 import { DateDivider } from './DateDivider';
 import { formatDateGroup } from '../utils/formatDateGroup';
 import { Message } from '../types/message';
+import { supabase } from '../lib/supabase';
 import {
   VirtualizedMessageList,
   VirtualizedMessageListHandle,
@@ -159,11 +160,40 @@ export function ChatArea({
   if (messages.length === 0) {
     console.log('Showing empty state');
     return (
-      <div className="flex items-center justify-center p-8 text-center flex-1">
+      <div className="flex flex-col items-center justify-center p-8 text-center flex-1 space-y-4">
         <div>
           <p className="text-gray-400 text-lg mb-2">No messages yet</p>
           <p className="text-gray-500">Be the first to say hello! 👋</p>
         </div>
+        <button
+          onClick={async () => {
+            console.log('Testing message send...');
+            try {
+              const { data, error } = await supabase
+                .from('messages')
+                .insert({
+                  content: 'Test message from system',
+                  user_name: 'System',
+                  user_id: 'test-user-id',
+                  avatar_color: '#3B82F6'
+                })
+                .select()
+                .single();
+              
+              console.log('Test message result:', { data, error });
+              if (error) {
+                console.error('Failed to send test message:', error);
+              } else {
+                console.log('Test message sent successfully!');
+              }
+            } catch (err) {
+              console.error('Error sending test message:', err);
+            }
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Send Test Message
+        </button>
       </div>
     );
   }
