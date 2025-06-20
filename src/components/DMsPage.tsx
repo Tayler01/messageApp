@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallba
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { DEFAULT_AVATAR_COLOR } from '../utils/avatarColors';
+import { VirtualizedMessageList, VirtualizedMessageListHandle } from './VirtualizedMessageList';
 import { DMConversation } from '../types/dm';
 
 interface User {
@@ -36,22 +37,18 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   const [activeTab, setActiveTab] = useState<'recent' | 'all'>('all');
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const [listHeight, setListHeight] = useState(0);
   const messageContainerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<VirtualizedMessageListHandle>(null);
+  const [listHeight, setListHeight] = useState(0);
 
   useLayoutEffect(() => {
-    const updateHeight = () => {
-      if (messageContainerRef.current) {
-        setListHeight(messageContainerRef.current.offsetHeight);
-      }
-    };
-
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-
-    return () => {
-      window.removeEventListener('resize', updateHeight);
-    };
+    const container = messageContainerRef.current;
+    if (!container) return;
+    const update = () => setListHeight(container.clientHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -166,12 +163,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
       cleanupConnections();
     };
   }, [selectedConversation?.id, currentUser.id]);
-
   useEffect(() => {
-    const container = messageContainerRef.current;
-    if (container && selectedConversation?.messages.length) {
-      container.scrollTop = container.scrollHeight;
-    }
+    listRef.current?.scrollToItem(selectedConversation?.messages.length ?? 0);
   }, [selectedConversation?.messages]);
 
 
@@ -256,10 +249,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     });
   };
 
-  const renderedMessages = useMemo(() => {
-    if (!selectedConversation) return [];
-    return selectedConversation.messages.map((message) => (
-      <div key={message.id} className="mb-4">
+  const messageItems = useMemo(() => {
+    if (!selectedConversation) return [] as { key: string; element: JSX.Element }[];
+    return selectedConversation.messages.map((message) => ({
+      key: message.id,
+      element: (
         <div
           className={`flex gap-3 ${
             message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
@@ -319,8 +313,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
             <span className="text-xs text-gray-400 mt-1">{formatTime(message.created_at)}</span>
           </div>
         </div>
-      </div>
-    ));
+      ),
+    }));
   }, [selectedConversation, currentUser, currentUserData, onUserClick, getOtherUser, getOtherUserData]);
 
   return (
@@ -570,7 +564,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
 
               {/* Messages */}
               {selectedConversation.messages.length === 0 ? (
-                <div className="flex-1 overflow-y-auto p-4 flex items-center justify-center text-center" ref={messageContainerRef}>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 flex items-center justify-center text-center" ref={messageContainerRef}>
                   <div>
                     <MessageSquare className="w-12 h-12 text-gray-500 mx-auto mb-4" />
                     <p className="text-gray-400 text-lg mb-2">Start a conversation</p>
@@ -580,14 +574,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
                   </div>
                 </div>
               ) : (
-                <div 
-                  ref={messageContainerRef}
-                  className="flex-1 overflow-y-auto p-4"
-                >
-                  <div className="space-y-1">
-                    {renderedMessages}
-                  </div>
-                </div>
+                <VirtualizedMessageList
+                  ref={listRef}
+                  items={messageItems}
+                  height={listHeight}
+                  outerRef={messageContainerRef}
+                  className="flex-1 overflow-y-auto p-4 space-y-4"
+                />
               )}
 
               {/* Message Input */}

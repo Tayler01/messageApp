@@ -13,7 +13,6 @@ import { useDMNotifications } from './hooks/useDMNotifications';
 import { usePushSubscription } from './hooks/usePushSubscription';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { supabase } from './lib/supabase';
-import { useEffect } from 'react';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -41,28 +40,6 @@ function App() {
   } = useDMNotifications(user?.id ?? null, currentPage, activeConversationId);
 
   usePushSubscription(user?.id ?? null);
-
-  // Handle URL hash navigation for notification clicks
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1);
-      if (hash === 'dms') {
-        setCurrentPage('dms');
-      } else if (hash === 'group-chat') {
-        setCurrentPage('group-chat');
-      }
-    };
-
-    // Check initial hash
-    handleHashChange();
-    
-    // Listen for hash changes
-    window.addEventListener('hashchange', handleHashChange);
-    
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  }, []);
 
   // Show loading spinner while checking auth
   if (authLoading) {
