@@ -1,23 +1,32 @@
 import React, { useEffect } from 'react';
 
 interface BannerProps {
-  message: { senderUsername: string; content: string } | null;
+  notification: {
+    conversationId: string;
+    senderUsername: string;
+    content: string;
+  } | null;
   onClose: () => void;
+  onClick?: (conversationId: string) => void;
 }
 
-export function NotificationBanner({ message, onClose }: BannerProps) {
+export function NotificationBanner({ notification, onClose, onClick }: BannerProps) {
   useEffect(() => {
-    if (!message) return;
+    if (!notification) return;
     const t = setTimeout(onClose, 5000);
     return () => clearTimeout(t);
-  }, [message, onClose]);
+  }, [notification, onClose]);
 
-  if (!message) return null;
+  if (!notification) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg shadow-lg z-50">
-      <p className="text-sm">
-        <span className="font-semibold">{message.senderUsername}:</span> {message.content}
+    <div
+      onClick={() => onClick?.(notification.conversationId)}
+      className="fixed top-16 inset-x-0 sm:top-16 sm:right-4 sm:left-auto sm:w-80 bg-gray-800/90 border border-gray-700 text-white px-4 py-2 rounded-none sm:rounded-lg shadow-xl z-50 cursor-pointer hover:bg-gray-700/90 transition-colors"
+    >
+      <p className="text-sm truncate">
+        <span className="font-semibold mr-1">{notification.senderUsername}:</span>
+        {notification.content}
       </p>
     </div>
   );

@@ -25,9 +25,10 @@ interface DMsPageProps {
   unreadConversations?: string[];
   markAsRead?: (conversationId: string, timestamp: string) => void;
   onConversationOpen?: (id: string | null) => void;
+  activeConversationId?: string | null;
 }
 
-export function DMsPage({ currentUser, onUserClick, unreadConversations = [], markAsRead, onConversationOpen }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], markAsRead, onConversationOpen, activeConversationId }: DMsPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
@@ -166,6 +167,30 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   useEffect(() => {
     listRef.current?.scrollToItem(selectedConversation?.messages.length ?? 0);
   }, [selectedConversation?.messages]);
+
+  useEffect(() => {
+    if (!activeConversationId) return;
+    if (selectedConversation?.id === activeConversationId) return;
+    const existing = conversations.find(c => c.id === activeConversationId);
+    if (existing) {
+      setSelectedConversation(existing);
+    } else {
+      supabase
+        .from('dms')
+        .select('*')
+        .eq('id', activeConversationId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setConversations(prev => {
+              const exists = prev.find(c => c.id === data.id);
+              return exists ? prev : [data, ...prev];
+            });
+            setSelectedConversation(data);
+          }
+        });
+    }
+  }, [activeConversationId, conversations, selectedConversation?.id]);
 
 
   const startConversation = async (user: User) => {

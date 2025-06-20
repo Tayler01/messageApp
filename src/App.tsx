@@ -105,10 +105,15 @@ function App() {
           unreadConversations={unreadConversations}
           markAsRead={markAsRead}
           onConversationOpen={setActiveConversationId}
+          activeConversationId={activeConversationId}
         />
         <NotificationBanner
-          message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
+          notification={banner}
           onClose={clearBanner}
+          onClick={(id) => {
+            setCurrentPage('dms');
+            setActiveConversationId(id);
+          }}
         />
         {previewUserId && (
           <ProfilePreviewModal
@@ -148,8 +153,12 @@ function App() {
       />
 
       <NotificationBanner
-        message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
+        notification={banner}
         onClose={clearBanner}
+        onClick={(id) => {
+          setCurrentPage('dms');
+          setActiveConversationId(id);
+        }}
       />
 
       {previewUserId && (
