@@ -1,13 +1,15 @@
 import React from 'react';
+import { Heart } from 'lucide-react';
 import { Message } from '../types/message';
 
 interface MessageBubbleProps {
   message: Message;
   isOwnMessage: boolean;
   onUserClick?: (userId: string) => void;
+  onHeart?: () => void;
 }
 
-export function MessageBubble({ message, isOwnMessage, onUserClick }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwnMessage, onUserClick, onHeart }: MessageBubbleProps) {
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
@@ -65,6 +67,18 @@ export function MessageBubble({ message, isOwnMessage, onUserClick }: MessageBub
           <span className="font-medium text-xs">{message.user_name}</span>
           <span>•</span>
           <span className="text-xs">{formatTime(message.created_at)}</span>
+          <button
+            onClick={onHeart}
+            className="ml-2 flex items-center gap-1 text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <Heart
+              className="w-3 h-3"
+              fill={message.hearts_count && message.hearts_count > 0 ? 'currentColor' : 'none'}
+            />
+            {message.hearts_count ? (
+              <span>{message.hearts_count}</span>
+            ) : null}
+          </button>
         </div>
       </div>
     </div>

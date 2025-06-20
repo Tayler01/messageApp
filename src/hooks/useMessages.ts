@@ -78,7 +78,7 @@ export function useMessages() {
 
       const { data, error } = await supabase
         .from('messages')
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, hearts_count, created_at')
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE);
 
@@ -125,7 +125,7 @@ export function useMessages() {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, hearts_count, created_at')
         .lt('created_at', oldestTimestampRef.current)
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE);
@@ -179,8 +179,9 @@ export function useMessages() {
           user_id: userId,
           avatar_color: avatarColor,
           avatar_url: avatarUrl,
+          hearts_count: 0,
         })
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, hearts_count, created_at')
         .single();
 
       if (error) throw error;
@@ -204,12 +205,27 @@ export function useMessages() {
     }
   };
 
+  const heartMessage = async (id: string, currentCount: number = 0) => {
+    const newCount = currentCount + 1;
+    setMessages(prev =>
+      prev.map(m => (m.id === id ? { ...m, hearts_count: newCount } : m))
+    );
+    const { error } = await supabase
+      .from('messages')
+      .update({ hearts_count: newCount })
+      .eq('id', id);
+    if (error) {
+      console.error('Failed to heart message:', error);
+    }
+  };
+
   return {
     messages,
     loading,
     loadingOlder,
     error,
     sendMessage,
+    heartMessage,
     fetchOlderMessages,
     hasMore,
   };
