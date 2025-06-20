@@ -24,9 +24,10 @@ interface DMsPageProps {
   unreadConversations?: string[];
   markAsRead?: (conversationId: string, timestamp: string) => void;
   onConversationOpen?: (id: string | null) => void;
+  activeConversationId?: string | null;
 }
 
-export function DMsPage({ currentUser, onUserClick, unreadConversations = [], markAsRead, onConversationOpen }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], markAsRead, onConversationOpen, activeConversationId }: DMsPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
@@ -38,6 +39,16 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [listHeight, setListHeight] = useState(0);
   const messageContainerRef = useRef<HTMLDivElement>(null);
+  // Effect to handle external conversation selection (from banner clicks)
+  useEffect(() => {
+    if (activeConversationId && conversations.length > 0) {
+      const conversation = conversations.find(conv => conv.id === activeConversationId);
+      if (conversation) {
+        setSelectedConversation(conversation);
+      }
+    }
+  }, [activeConversationId, conversations]);
+
 
   useLayoutEffect(() => {
     const updateHeight = () => {

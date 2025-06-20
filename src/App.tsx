@@ -110,6 +110,15 @@ function App() {
     }
   };
 
+  const handleBannerNavigate = (conversationId: string) => {
+    setCurrentPage('dms');
+    // Clear any existing active conversation first
+    setActiveConversationId(null);
+    // Set the new active conversation after a brief delay to ensure state updates
+    setTimeout(() => {
+      setActiveConversationId(conversationId);
+    }, 100);
+  };
   // Show DMs page
   if (currentPage === 'dms') {
     return (
@@ -128,10 +137,16 @@ function App() {
           unreadConversations={unreadConversations}
           markAsRead={markAsRead}
           onConversationOpen={setActiveConversationId}
+          activeConversationId={activeConversationId}
         />
         <NotificationBanner
-          message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
+          message={banner ? { 
+            senderUsername: banner.senderUsername, 
+            content: banner.content,
+            conversationId: banner.conversationId 
+          } : null}
           onClose={clearBanner}
+          onNavigate={handleBannerNavigate}
         />
         {previewUserId && (
           <ProfilePreviewModal
@@ -171,8 +186,13 @@ function App() {
       />
 
       <NotificationBanner
-        message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
+        message={banner ? { 
+          senderUsername: banner.senderUsername, 
+          content: banner.content,
+          conversationId: banner.conversationId 
+        } : null}
         onClose={clearBanner}
+        onNavigate={handleBannerNavigate}
       />
 
       {previewUserId && (
