@@ -164,7 +164,7 @@ export function ChatArea({
       items={items}
       height={listHeight}
       outerRef={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-900 relative"
+      className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-900 relative w-full"
       onScroll={handleScroll}
     />
   );

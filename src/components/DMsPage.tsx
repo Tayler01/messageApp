@@ -346,13 +346,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
 
   return (
     <div className="h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
-      <div className="flex px-2 sm:px-8 lg:px-16 py-2 sm:py-6 h-full gap-2 sm:gap-6 relative">
+      <div className="flex px-2 sm:px-4 lg:px-8 py-2 sm:py-4 h-full gap-2 sm:gap-4 relative">
         {/* Contacts Sidebar */}
         <div className={`${
           selectedConversation ? 'hidden md:flex' : 'flex'
-        } w-full md:w-80 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden`}>
+        } w-full md:w-80 lg:w-96 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden`}>
           {/* Search */}
-          <div className="p-4 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-gray-600/50 backdrop-blur-sm">
+          <div className="p-3 sm:p-4 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-gray-600/50 backdrop-blur-sm">
             <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-emerald-400" />
               Contacts
@@ -606,24 +606,24 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
                   items={messageItems}
                   height={listHeight}
                   outerRef={messageContainerRef}
-                  className="flex-1 overflow-y-auto bg-gray-900"
+                  className="flex-1 overflow-y-auto bg-gray-900 w-full"
                 />
               )}
 
               {/* Message Input */}
-              <div className="p-3 sm:p-4 border-t border-gray-600/50 bg-gray-800/50 safe-area-inset-bottom">
+              <div className="p-2 sm:p-4 border-t border-gray-600/50 bg-gray-800/50 safe-area-inset-bottom">
                 <form 
                   onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
                   className="flex justify-center w-full"
                 >
                   <div className="relative w-full max-w-2xl min-w-0">
-                    <div className="bg-gray-700/80 border border-gray-600/50 rounded-3xl px-3 sm:px-4 pr-12 sm:pr-14 py-2.5 text-white focus-within:ring-2 focus-within:ring-blue-500 shadow-lg transition-all duration-150 backdrop-blur-sm">
+                    <div className="bg-gray-700/80 border border-gray-600/50 rounded-3xl px-3 sm:px-4 pr-10 sm:pr-12 py-2 sm:py-2.5 text-white focus-within:ring-2 focus-within:ring-blue-500 shadow-lg transition-all duration-150 backdrop-blur-sm">
                       <input
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder={`Message ${getOtherUser(selectedConversation).username}...`}
-                        className="w-full bg-transparent placeholder-gray-400 text-sm sm:text-base focus:outline-none"
+                        className="w-full bg-transparent placeholder-gray-400 text-sm sm:text-base focus:outline-none resize-none"
                         style={{
                           fontSize: '16px', // Prevents zoom on iOS
                           lineHeight: '1.5'
@@ -633,7 +633,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
                     <button
                       type="submit"
                       disabled={!newMessage.trim()}
-                      className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 sm:p-2.5 rounded-full hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                      className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-1.5 sm:p-2 rounded-full hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                     >
                       <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>

@@ -136,16 +136,18 @@ function App() {
         hasUnreadDMs={unreadConversations.length > 0}
       />
 
-      <ChatArea
-        messages={messages}
-        currentUserId={user.id}
-        loading={loading}
-        error={error}
-        onRetry={() => window.location.reload()}
-        fetchOlderMessages={fetchOlderMessages}
-        hasMore={hasMore}
-        onUserClick={handleUserClick}
-      />
+      <div className="flex-1 overflow-hidden">
+        <ChatArea
+          messages={messages}
+          currentUserId={user.id}
+          loading={loading}
+          error={error}
+          onRetry={() => window.location.reload()}
+          fetchOlderMessages={fetchOlderMessages}
+          hasMore={hasMore}
+          onUserClick={handleUserClick}
+        />
+      </div>
 
       <MessageInput
         onSendMessage={handleSendMessage}

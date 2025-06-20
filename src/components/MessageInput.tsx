@@ -34,17 +34,17 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   }, [message]);
 
   return (
-    <div className="border-t border-gray-700 bg-gray-800 px-2 sm:px-4 py-3 safe-area-inset-bottom">
+    <div className="border-t border-gray-700 bg-gray-800 px-2 sm:px-4 py-2 sm:py-3 safe-area-inset-bottom flex-shrink-0">
       <form onSubmit={handleSubmit} className="flex justify-center">
         <div className="relative w-full max-w-2xl min-w-0">
-          <div className="bg-gray-700 border border-gray-600 rounded-3xl px-3 sm:px-4 pr-12 sm:pr-14 py-2 text-white focus-within:ring-2 focus-within:ring-blue-500 shadow-md transition-all duration-150">
+          <div className="bg-gray-700 border border-gray-600 rounded-3xl px-3 sm:px-4 pr-10 sm:pr-12 py-2 text-white focus-within:ring-2 focus-within:ring-blue-500 shadow-md transition-all duration-150">
             <textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="ShadowMessage..."
-              className="w-full bg-transparent resize-none overflow-y-auto placeholder-gray-400 text-sm sm:text-base focus:outline-none max-h-32 sm:max-h-40"
+              className="w-full bg-transparent resize-none overflow-y-auto placeholder-gray-400 text-sm sm:text-base focus:outline-none max-h-24 sm:max-h-32"
               rows={1}
               disabled={disabled}
               style={{
@@ -57,7 +57,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
           <button
             type="submit"
             disabled={!message.trim() || disabled}
-            className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 sm:p-2.5 rounded-full hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+            className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-1.5 sm:p-2 rounded-full hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
           >
             <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
