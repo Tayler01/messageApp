@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export type PageType = 'group-chat' | 'dms' | 'profile';
@@ -18,6 +18,23 @@ export function useDMNotifications(
 ) {
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [banner, setBanner] = useState<DMNotification | null>(null);
+  const [isVisible, setIsVisible] = useState(
+    typeof document !== 'undefined' && document.visibilityState === 'visible'
+  );
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Track page visibility to manage realtime subscription
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsVisible(document.visibilityState === 'visible');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   // Fetch initial conversations to determine unread status
   useEffect(() => {
@@ -45,9 +62,9 @@ export function useDMNotifications(
     fetchInitial();
   }, [currentUserId]);
 
-  // Subscribe to DM updates
+  // Subscribe to DM updates when the page is visible
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId || !isVisible) return;
 
     const channel = supabase
       .channel('dm_notifications')
@@ -85,10 +102,21 @@ export function useDMNotifications(
       })
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
       channel.unsubscribe();
+      channelRef.current = null;
     };
-  }, [currentUserId, currentPage, activeConversationId]);
+  }, [currentUserId, currentPage, activeConversationId, isVisible]);
+
+  // Unsubscribe when the page becomes hidden
+  useEffect(() => {
+    if (!isVisible && channelRef.current) {
+      channelRef.current.unsubscribe();
+      channelRef.current = null;
+    }
+  }, [isVisible]);
 
   const markAsRead = (conversationId: string, timestamp: string) => {
     localStorage.setItem(`dm_last_read_${conversationId}`, timestamp);
