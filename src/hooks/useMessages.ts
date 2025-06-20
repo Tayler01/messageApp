@@ -4,7 +4,7 @@ import { Message } from '../types/message';
 
 const PAGE_SIZE = 20;
 
-export function useMessages(userId: string | null) {
+export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
