@@ -8,8 +8,11 @@ const isStackBlitz = (() => {
     return window.location.hostname.includes('stackblitz.io') || 
       (window.parent !== window && window.parent.location.hostname.includes('stackblitz.io'));
   } catch (error) {
-    // Cross-origin access blocked, fallback to checking current window only
-    return window.location.hostname.includes('stackblitz.io');
+    // Cross-origin access blocked, use additional StackBlitz detection methods
+    return window.location.hostname.includes('stackblitz.io') ||
+      window.self !== window.top || // Running in iframe
+      (window.name && window.name.startsWith('sb-')) || // StackBlitz iframe naming
+      document.referrer.includes('stackblitz.io'); // Referred from StackBlitz
   }
 })();
 
