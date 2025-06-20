@@ -3,8 +3,15 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-const isStackBlitz = window.location.hostname.includes('stackblitz.io') || 
-  (window.parent !== window && window.parent.location.hostname.includes('stackblitz.io'));
+const isStackBlitz = (() => {
+  try {
+    return window.location.hostname.includes('stackblitz.io') || 
+      (window.parent !== window && window.parent.location.hostname.includes('stackblitz.io'));
+  } catch (error) {
+    // Cross-origin access blocked, fallback to checking current window only
+    return window.location.hostname.includes('stackblitz.io');
+  }
+})();
 
 if ('serviceWorker' in navigator && !isStackBlitz) {
   window.addEventListener('load', () => {
