@@ -35,6 +35,7 @@ function App() {
     loadingOlder,
     error,
     sendMessage,
+    heartMessage,
     fetchOlderMessages,
     hasMore,
   } = useMessages();
@@ -159,6 +160,7 @@ function App() {
           fetchOlderMessages={fetchOlderMessages}
           hasMore={hasMore}
           onUserClick={handleUserClick}
+          onHeartMessage={heartMessage}
         />
       </div>
 

@@ -6,6 +6,7 @@ export interface Message {
   created_at: string;
   avatar_color: string;
   avatar_url?: string | null;
+  hearts_count?: number;
 }
 
 export interface User {

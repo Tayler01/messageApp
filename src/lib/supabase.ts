@@ -76,6 +76,7 @@ export interface Database {
           avatar_color: string;
           created_at: string | null;
           avatar_url: string | null;
+          hearts_count: number | null;
         };
         Insert: {
           id?: string;
@@ -85,6 +86,7 @@ export interface Database {
           avatar_color?: string;
           created_at?: string | null;
           avatar_url?: string | null;
+          hearts_count?: number | null;
         };
         Update: {
           id?: string;
@@ -94,6 +96,7 @@ export interface Database {
           avatar_color?: string;
           created_at?: string | null;
           avatar_url?: string | null;
+          hearts_count?: number | null;
         };
       };
       subscriptions: {

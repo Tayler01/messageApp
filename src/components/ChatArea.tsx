@@ -22,6 +22,7 @@ interface ChatAreaProps {
   fetchOlderMessages: () => void;
   hasMore: boolean;
   onUserClick?: (userId: string) => void;
+  onHeartMessage?: (id: string, count: number) => void;
 }
 
 export function ChatArea({
@@ -34,6 +35,7 @@ export function ChatArea({
   fetchOlderMessages,
   hasMore,
   onUserClick,
+  onHeartMessage,
 }: ChatAreaProps) {
   console.log('ChatArea render:', { 
     messagesCount: messages.length, 
@@ -145,13 +147,16 @@ export function ChatArea({
             message={message}
             isOwnMessage={message.user_id === currentUserId}
             onUserClick={onUserClick}
+            onHeart={() =>
+              onHeartMessage?.(message.id, message.hearts_count ?? 0)
+            }
           />
         </div>
       );
     });
 
     return items;
-  }, [messages, currentUserId, onUserClick, hasMore, loadingOlder]);
+  }, [messages, currentUserId, onUserClick, onHeartMessage, hasMore, loadingOlder]);
 
   if (loading && messages.length === 0) {
     console.log('Showing loading spinner');
