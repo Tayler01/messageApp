@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-if ('serviceWorker' in navigator && !window.location.hostname.includes('stackblitz') && !window.parent.location.href.includes('stackblitz')) {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
