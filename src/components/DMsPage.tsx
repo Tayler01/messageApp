@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_AVATAR_COLOR } from '../utils/avatarColors';
 import { VirtualizedMessageList, VirtualizedMessageListHandle } from './VirtualizedMessageList';
 
 interface User {
@@ -257,7 +258,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     return users.find(u => u.id === otherUser.id) || {
       id: otherUser.id,
       username: otherUser.username,
-      avatar_color: '#3B82F6'
+      avatar_color: DEFAULT_AVATAR_COLOR
     };
   };
 
