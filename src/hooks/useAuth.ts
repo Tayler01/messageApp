@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { DEFAULT_AVATAR_COLOR } from '../utils/avatarColors';
 import { User } from '@supabase/supabase-js';
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string;
   username: string;

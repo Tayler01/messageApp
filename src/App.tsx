@@ -60,7 +60,6 @@ function App() {
     return (
       <UserProfile
         user={user}
-        onClose={() => setCurrentPage('group-chat')}
         onUserUpdate={updateUser}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
