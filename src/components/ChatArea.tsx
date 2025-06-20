@@ -47,17 +47,12 @@ export function ChatArea({
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const update = () => {
-      const height = container.clientHeight;
-      if (height > 0 && height !== listHeight) {
-        setListHeight(height);
-      }
-    };
+    const update = () => setListHeight(container.clientHeight);
     update();
     const observer = new ResizeObserver(update);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [listHeight]);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -159,25 +154,20 @@ export function ChatArea({
     );
   }
 
-  if (listHeight === 0) {
-    return (
-      <div 
-        ref={containerRef}
-        className="flex-1 flex items-center justify-center bg-gray-900"
-      >
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div ref={containerRef} className="flex-1 bg-gray-900 overflow-hidden">
-      <VirtualizedMessageList
-        ref={listRef}
-        items={items}
-        height={listHeight}
-        className="w-full h-full"
-      />
+    <div ref={containerRef} className="flex-1 overflow-hidden bg-gray-900">
+      {listHeight > 0 ? (
+        <VirtualizedMessageList
+          ref={listRef}
+          items={items}
+          height={listHeight}
+          className="w-full h-full"
+        />
+      ) : (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      )}
     </div>
   );
 }
