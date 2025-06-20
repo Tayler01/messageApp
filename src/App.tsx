@@ -18,6 +18,12 @@ type PageType = 'group-chat' | 'dms' | 'profile';
 
 function App() {
   const { user, loading: authLoading, signOut, updateUser } = useAuth();
+  
+  console.log('App render:', { 
+    user: user ? { id: user.id, username: user.username } : null, 
+    authLoading 
+  });
+  
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('group-chat');
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);

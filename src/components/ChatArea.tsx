@@ -38,6 +38,13 @@ export function ChatArea({
   hasMore,
   onUserClick,
 }: ChatAreaProps) {
+  console.log('ChatArea render:', { 
+    messagesCount: messages.length, 
+    loading, 
+    error,
+    currentUserId 
+  });
+
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<VirtualizedMessageListHandle>(null);
   const hasAutoScrolled = useRef(false);
@@ -140,14 +147,17 @@ export function ChatArea({
   }, [messages, currentUserId, onUserClick]);
 
   if (loading && messages.length === 0) {
+    console.log('Showing loading spinner');
     return <LoadingSpinner />;
   }
 
   if (error) {
+    console.log('Showing error:', error);
     return <ErrorMessage message={error} onRetry={onRetry} />;
   }
 
   if (messages.length === 0) {
+    console.log('Showing empty state');
     return (
       <div className="flex items-center justify-center p-8 text-center flex-1">
         <div>

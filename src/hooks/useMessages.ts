@@ -16,16 +16,17 @@ export function useMessages(userId: string | null) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
-    // Always fetch messages for group chat, regardless of userId
-
+    console.log('useMessages: Starting to fetch messages...');
     fetchLatestMessages();
 
+    // Set up realtime subscription
     const channel = supabase
       .channel('messages')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
+          console.log('New message received:', payload);
           const newMessage = payload.new as Message;
 
           setMessages((prev) =>
@@ -46,20 +47,24 @@ export function useMessages(userId: string | null) {
     channelRef.current = channel;
 
     return () => {
+      console.log('useMessages: Cleaning up...');
       channel.unsubscribe();
     };
-  }, []); // Remove userId dependency since group chat should always load
+  }, []);
 
   useEffect(() => {
-    // Only start the interval if we have messages loaded
-    if (messages.length === 0) return;
+    // Start polling for new messages after a delay
+    const timer = setTimeout(() => {
+      const interval = setInterval(fetchNewMessages, 15000);
+      return () => clearInterval(interval);
+    }, 5000);
 
-    const interval = setInterval(fetchNewMessages, 15000);
-    return () => clearInterval(interval);
-  }, [messages.length]);
+    return () => clearTimeout(timer);
+  }, []);
 
   const fetchLatestMessages = async () => {
     try {
+      console.log('Fetching latest messages...');
       setLoading(true);
       setError(null);
 
@@ -69,14 +74,21 @@ export function useMessages(userId: string | null) {
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE);
 
+      console.log('Messages query result:', { data, error });
+
       if (error) throw error;
 
       const sorted = [...(data || [])].reverse();
+      console.log('Setting messages:', sorted);
       setMessages(sorted);
 
       if (sorted.length > 0) {
         oldestTimestampRef.current = sorted[0].created_at;
         latestTimestampRef.current = sorted[sorted.length - 1].created_at;
+        console.log('Set timestamps:', {
+          oldest: oldestTimestampRef.current,
+          latest: latestTimestampRef.current
+        });
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
