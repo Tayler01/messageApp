@@ -3,6 +3,7 @@ import React, {
   useRef,
   useCallback,
   useState,
+  useLayoutEffect,
   useMemo,
 } from 'react';
 import { MessageBubble } from './MessageBubble';
@@ -11,6 +12,10 @@ import { ErrorMessage } from './ErrorMessage';
 import { DateDivider } from './DateDivider';
 import { formatDateGroup } from '../utils/formatDateGroup';
 import { Message } from '../types/message';
+import {
+  VirtualizedMessageList,
+  VirtualizedMessageListHandle,
+} from './VirtualizedMessageList';
 
 interface ChatAreaProps {
   messages: Message[];
@@ -34,9 +39,20 @@ export function ChatArea({
   onUserClick,
 }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<VirtualizedMessageListHandle>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
+  const [listHeight, setListHeight] = useState(0);
 
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const update = () => setListHeight(container.clientHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -46,10 +62,10 @@ export function ChatArea({
       container.scrollHeight - container.scrollTop - container.clientHeight < 200;
 
     if (!hasAutoScrolled.current) {
-      container.scrollTop = container.scrollHeight;
+      listRef.current?.scrollToItem(messages.length - 1);
       hasAutoScrolled.current = true;
     } else if (isNearBottom) {
-      container.scrollTop = container.scrollHeight;
+      listRef.current?.scrollToItem(messages.length - 1);
     }
   }, [messages]);
 
@@ -85,34 +101,38 @@ export function ChatArea({
     };
   }, [handleScroll]);
 
-  const renderedMessages = useMemo(() => {
-    const elements: JSX.Element[] = [];
+  const items = useMemo(() => {
+    const arr: { key: string; element: JSX.Element }[] = [];
     let lastDateLabel: string | null = null;
 
     messages.forEach((message) => {
       const dateLabel = formatDateGroup(message.created_at);
 
       if (dateLabel !== lastDateLabel) {
-        elements.push(
-          <div key={`date-${dateLabel}-${message.id}`} className="my-4">
-            <DateDivider label={dateLabel} />
-          </div>
-        );
+        arr.push({
+          key: `date-${dateLabel}-${message.id}`,
+          element: (
+            <div className="my-4">
+              <DateDivider label={dateLabel} />
+            </div>
+          ),
+        });
         lastDateLabel = dateLabel;
       }
 
-      elements.push(
-        <div key={message.id}>
+      arr.push({
+        key: message.id,
+        element: (
           <MessageBubble
             message={message}
             isOwnMessage={message.user_id === currentUserId}
             onUserClick={onUserClick}
           />
-        </div>
-      );
+        ),
+      });
     });
 
-    return elements;
+    return arr;
   }, [messages, currentUserId, onUserClick]);
 
   if (loading && messages.length === 0) {
@@ -135,15 +155,14 @@ export function ChatArea({
   }
 
   return (
-    <div 
-      ref={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 bg-gray-900 relative"
+    <VirtualizedMessageList
+      ref={listRef}
+      items={items}
+      height={listHeight}
+      outerRef={containerRef}
+      className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
       onScroll={handleScroll}
-    >
-      <div className="space-y-1">
-        {renderedMessages}
-      </div>
-    </div>
+    />
   );
 }
 

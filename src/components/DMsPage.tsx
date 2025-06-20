@@ -3,6 +3,7 @@ import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-
 import { supabase } from '../lib/supabase';
 import { DEFAULT_AVATAR_COLOR } from '../utils/avatarColors';
 import { DMConversation } from '../types/dm';
+import { VirtualizedMessageList, VirtualizedMessageListHandle } from './VirtualizedMessageList';
 
 interface User {
   id: string;
@@ -40,6 +41,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   const [listHeight, setListHeight] = useState(0);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  const listRef = useRef<VirtualizedMessageListHandle>(null);
   // Effect to handle external conversation selection (from banner clicks)
   useEffect(() => {
     if (!activeConversationId) return;
@@ -224,10 +226,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
   }, [selectedConversation?.id, currentUser.id]);
 
   useEffect(() => {
-    const container = messageContainerRef.current;
-    if (container && selectedConversation?.messages.length) {
-      container.scrollTop = container.scrollHeight;
-    }
+    listRef.current?.scrollToItem(selectedConversation?.messages.length ?? 0);
   }, [selectedConversation?.messages]);
 
 
@@ -312,10 +311,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
     });
   };
 
-  const renderedMessages = useMemo(() => {
-    if (!selectedConversation) return [];
-    return selectedConversation.messages.map((message) => (
-      <div key={message.id} className="mb-4">
+  const messageItems = useMemo(() => {
+    if (!selectedConversation) return [] as { key: string; element: JSX.Element }[];
+    return selectedConversation.messages.map((message) => ({
+      key: message.id,
+      element: (
         <div
           className={`flex gap-3 ${
             message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
@@ -375,8 +375,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
             <span className="text-xs text-gray-400 mt-1">{formatTime(message.created_at)}</span>
           </div>
         </div>
-      </div>
-    ));
+      ),
+    }));
   }, [selectedConversation, currentUser, currentUserData, onUserClick, getOtherUser, getOtherUserData]);
 
   return (
@@ -638,14 +638,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], ma
                   </div>
                 </div>
               ) : (
-                <div 
-                  ref={messageContainerRef}
-                  className="flex-1 overflow-y-auto p-4"
-                >
-                  <div className="space-y-1">
-                    {renderedMessages}
-                  </div>
-                </div>
+                <VirtualizedMessageList
+                  ref={listRef}
+                  items={messageItems}
+                  height={listHeight}
+                  outerRef={messageContainerRef}
+                  className="flex-1 overflow-y-auto p-4 space-y-4"
+                />
               )}
 
               {/* Message Input */}

@@ -20,11 +20,10 @@ export function useDMNotifications(
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [banner, setBanner] = useState<DMNotification | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Fetch initial conversations to determine unread status
   useEffect(() => {
-    if (!currentUserId || hasInitialized) return;
+    if (!currentUserId) return;
 
     const fetchInitial = async () => {
       try {
@@ -49,19 +48,17 @@ export function useDMNotifications(
           }
         });
         setUnreadConversations(newUnread);
-        setHasInitialized(true);
       } catch (error) {
         console.error('Error fetching initial DM conversations:', error);
-        setHasInitialized(true);
       }
     };
 
     fetchInitial();
-  }, [currentUserId, hasInitialized]);
+  }, [currentUserId]);
 
   // Subscribe to DM updates
   useEffect(() => {
-    if (!currentUserId || !hasInitialized) return;
+    if (!currentUserId) return;
 
     // Clean up any existing subscription
     if (channelRef.current) {
@@ -122,7 +119,7 @@ export function useDMNotifications(
         channelRef.current = null;
       }
     };
-  }, [currentUserId, currentPage, activeConversationId, hasInitialized]);
+  }, [currentUserId, currentPage, activeConversationId]);
 
   const markAsRead = (conversationId: string, timestamp: string) => {
     localStorage.setItem(`dm_last_read_${conversationId}`, timestamp);
