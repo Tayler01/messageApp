@@ -110,17 +110,6 @@ function App() {
     }
   };
 
-  const handleBannerNavigate = (conversationId: string) => {
-    console.log('Banner navigate called with conversation:', conversationId);
-    // Clear any existing conversation selection first
-    setActiveConversationId(null);
-    setCurrentPage('dms');
-    // Then set the new conversation and navigate
-    setTimeout(() => {
-      console.log('Setting active conversation ID:', conversationId);
-      setActiveConversationId(conversationId);
-    }, 100);
-  };
   // Show DMs page
   if (currentPage === 'dms') {
     return (
@@ -139,16 +128,10 @@ function App() {
           unreadConversations={unreadConversations}
           markAsRead={markAsRead}
           onConversationOpen={setActiveConversationId}
-          activeConversationId={activeConversationId}
         />
         <NotificationBanner
-          message={banner ? { 
-            senderUsername: banner.senderUsername, 
-            content: banner.content,
-            conversationId: banner.conversationId 
-          } : null}
+          message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
           onClose={clearBanner}
-          onNavigate={handleBannerNavigate}
         />
         {previewUserId && (
           <ProfilePreviewModal
@@ -188,13 +171,8 @@ function App() {
       />
 
       <NotificationBanner
-        message={banner ? { 
-          senderUsername: banner.senderUsername, 
-          content: banner.content,
-          conversationId: banner.conversationId 
-        } : null}
+        message={banner ? { senderUsername: banner.senderUsername, content: banner.content } : null}
         onClose={clearBanner}
-        onNavigate={handleBannerNavigate}
       />
 
       {previewUserId && (
