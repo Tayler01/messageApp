@@ -42,6 +42,7 @@ export function ChatArea({
   const listRef = useRef<VirtualizedMessageListHandle>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
+  const prevHeightRef = useRef(0);
   const [listHeight, setListHeight] = useState(0);
 
   useLayoutEffect(() => {
@@ -70,26 +71,27 @@ export function ChatArea({
   }, [messages]);
 
   const handleScroll = useCallback(() => {
-  const container = containerRef.current;
-  if (!container || !hasMore || isFetchingRef.current) return;
+    const container = containerRef.current;
+    if (!container || !hasMore || isFetchingRef.current) return;
 
-  if (container.scrollTop === 0) {
-    const previousHeight = container.scrollHeight;
-    isFetchingRef.current = true;
-
-    fetchOlderMessages();
-    
-    // Use a timeout to restore scroll position after messages load
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        const newHeight = container.scrollHeight;
-        container.scrollTop = newHeight - previousHeight;
-
-        isFetchingRef.current = false;
-      });
-    }, 100);
-  }
+    if (container.scrollTop === 0) {
+      prevHeightRef.current = container.scrollHeight;
+      isFetchingRef.current = true;
+      fetchOlderMessages();
+    }
   }, [fetchOlderMessages, hasMore]);
+
+  useLayoutEffect(() => {
+    if (!isFetchingRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    requestAnimationFrame(() => {
+      const newHeight = container.scrollHeight;
+      container.scrollTop = newHeight - prevHeightRef.current;
+      isFetchingRef.current = false;
+    });
+  }, [messages]);
 
   useEffect(() => {
     const container = containerRef.current;
