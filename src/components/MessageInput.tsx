@@ -18,7 +18,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -42,7 +42,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
               ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               placeholder="ShadowMessage..."
               className="w-full bg-transparent resize-none overflow-y-auto placeholder-gray-400 text-sm sm:text-base focus:outline-none max-h-32 sm:max-h-40"
               rows={1}
