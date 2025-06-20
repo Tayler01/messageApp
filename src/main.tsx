@@ -17,7 +17,14 @@ if ('serviceWorker' in navigator && !isStackBlitz) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
-      .catch(err => console.error('Service worker registration failed:', err));
+      .catch(err => {
+        // Check if this is a StackBlitz-specific service worker limitation
+        if (err.message && err.message.includes('StackBlitz')) {
+          console.warn('Service worker registration failed (expected in StackBlitz):', err.message);
+        } else {
+          console.error('Service worker registration failed:', err);
+        }
+      });
   });
 }
 
