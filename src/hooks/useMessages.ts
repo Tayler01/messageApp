@@ -16,11 +16,7 @@ export function useMessages() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isInitialLoadRef = useRef(true);
 
-  useEffect(() => {
-    console.log('useMessages: Starting to fetch messages...');
-    fetchLatestMessages();
-
-    // Set up realtime subscription
+  const subscribeToRealtime = () => {
     const channel = supabase
       .channel('messages')
       .on(
@@ -50,10 +46,41 @@ export function useMessages() {
       .subscribe();
 
     channelRef.current = channel;
+  };
+
+  useEffect(() => {
+    console.log('useMessages: Starting to fetch messages...');
+    fetchLatestMessages();
+    subscribeToRealtime();
 
     return () => {
       console.log('useMessages: Cleaning up...');
-      channel.unsubscribe();
+      channelRef.current?.unsubscribe();
+      channelRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        if (!isInitialLoadRef.current) {
+          fetchLatestMessages();
+        }
+        if (!channelRef.current) {
+          subscribeToRealtime();
+        }
+      } else {
+        channelRef.current?.unsubscribe();
+        channelRef.current = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
     };
   }, []);
 
